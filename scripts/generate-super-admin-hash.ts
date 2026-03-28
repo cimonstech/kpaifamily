@@ -1,4 +1,4 @@
-import { hashPassword } from "../src/lib/auth/session";
+import { hashPassword } from "../src/lib/auth/password";
 
 async function main() {
   const password = process.argv[2];
