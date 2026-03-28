@@ -4,6 +4,7 @@ import { AddAdminModal } from "@/components/admin/AddAdminModal";
 import { ChangeRateModal } from "@/components/admin/ChangeRateModal";
 import { useToast } from "@/components/admin/Toast";
 import type { Admin, GlobalRateHistory } from "@/lib/types";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -71,7 +72,8 @@ export function SettingsClient({
           Global contribution rate
         </h2>
         <p className="mt-4 text-lg font-semibold text-[#1a1a2e]">
-          Current rate: ₵{currentRate.toFixed(0)}/month
+          Current rate:{" "}
+          {formatGhsCurrency(currentRate).replace(/\.00$/, "")}/month
         </p>
         <p className="mt-1 text-sm text-[#1a1a2e]/65">
           Effective since: {formatDate(effectiveSince)}
@@ -100,7 +102,9 @@ export function SettingsClient({
                 <tbody className="divide-y divide-[#1a1a2e]/8">
                   {globalHistory.map((row) => (
                     <tr key={row.id}>
-                      <td className="px-3 py-2">₵{Number(row.rate).toFixed(2)}</td>
+                      <td className="px-3 py-2">
+                        {formatGhsCurrency(Number(row.rate))}
+                      </td>
                       <td className="px-3 py-2 text-[#1a1a2e]/75">
                         {formatDate(row.effective_from)}
                       </td>

@@ -92,6 +92,12 @@ export type ReportData = {
   totalCollectedThisMonth: number;
   totalCollectedAllTime: number;
   totalOutstanding: number;
+  monthlyTrend: Array<{ month: string; amount: number }>;
+  topBehindMembers: Array<{
+    displayName: string;
+    amountBehind: number;
+    monthsBehind: number;
+  }>;
   members: Array<{
     displayName: string;
     branch: string;

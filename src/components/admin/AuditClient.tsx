@@ -1,6 +1,7 @@
 "use client";
 
 import type { AuditLog } from "@/lib/types";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 import { useMemo, useState } from "react";
 
 const EVENT_TYPES = [
@@ -78,7 +79,7 @@ function formatDetails(event: string, meta: Record<string, unknown> | null) {
     const newR = meta.newRate;
     const eff = meta.effectiveFrom;
     const n = meta.membersAffected;
-    return `₵${oldR} → ₵${newR}, effective ${eff}, ${n} member(s)`;
+    return `${formatGhsCurrency(Number(oldR))} → ${formatGhsCurrency(Number(newR))}, effective ${String(eff)}, ${n} member(s)`;
   }
   if (event === "REPORT_GENERATED" && meta.month) {
     return `Month ${String(meta.month)}`;
@@ -87,7 +88,7 @@ function formatDetails(event: string, meta: Record<string, unknown> | null) {
     return String(meta.name);
   }
   if (event === "PAYMENT_LOGGED" && meta.amount != null && meta.member_id) {
-    return `Amount ${meta.amount}, member ${String(meta.member_id).slice(0, 8)}…`;
+    return `Amount ${formatGhsCurrency(Number(meta.amount))}, member ${String(meta.member_id).slice(0, 8)}…`;
   }
   if (event === "ADMIN_ACCOUNT_CREATED" && meta.email) {
     return String(meta.email);

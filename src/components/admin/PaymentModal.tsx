@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/admin/Toast";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 
 function formatYmLabel(ym: string) {
   const [y, m] = ym.split("-").map(Number);
@@ -13,7 +14,7 @@ function formatYmLabel(ym: string) {
 }
 
 function formatCedis(n: number) {
-  return `₵${n.toFixed(2)}`;
+  return formatGhsCurrency(n);
 }
 
 function todayLocalIso() {

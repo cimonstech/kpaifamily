@@ -2,6 +2,7 @@
 
 import { APP_NAME } from "@/lib/constants";
 import type { Payment } from "@/lib/types";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 import { useMemo, useState } from "react";
 
 export type DashboardMemberRow = {
@@ -39,7 +40,7 @@ function getInitials(displayName: string) {
 }
 
 function formatCedis(n: number) {
-  return `₵${n.toFixed(2)}`;
+  return formatGhsCurrency(n);
 }
 
 function StatusBadge({ row }: { row: DashboardMemberRow }) {
@@ -345,29 +346,31 @@ export function DashboardMemberList({
                   <button
                     type="button"
                     onClick={() => setSelected(row)}
-                    className="grid w-full grid-cols-[auto,minmax(0,1fr)] gap-x-3 gap-y-3 rounded-xl border border-[#1a1a2e]/10 bg-white p-4 text-left shadow-sm transition hover:border-[#e8b84b]/40 lg:items-center"
+                    className="flex w-full flex-col gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white p-4 text-left shadow-sm transition hover:border-[#e8b84b]/40"
                   >
-                    <div
-                      className={`row-start-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${palette}`}
-                    >
-                      {getInitials(row.displayName)}
-                    </div>
-                    <div className="col-start-2 row-start-1 min-w-0 self-center">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-[#1a1a2e]">
-                          {row.displayName}
-                        </span>
-                        <StatusBadge row={row} />
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${palette}`}
+                      >
+                        {getInitials(row.displayName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                          <span className="font-medium text-[#1a1a2e]">
+                            {row.displayName}
+                          </span>
+                          <StatusBadge row={row} />
+                        </div>
                       </div>
                     </div>
-                    <div className="col-span-2 row-start-2 min-w-0 lg:col-span-1 lg:col-start-2 lg:row-start-2">
+                    <div className="min-w-0 w-full">
                       <div className="h-2 overflow-hidden rounded-full bg-[#1a1a2e]/10">
                         <div
                           className="h-full rounded-full bg-[#e8b84b] transition-all"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <p className="mt-2 hidden text-xs text-[#1a1a2e]/55 lg:block">
+                      <p className="mt-2 text-xs text-[#1a1a2e]/55">
                         {formatCedis(row.totalPaid)} paid ·{" "}
                         {formatCedis(row.expectedTotal)} expected
                       </p>

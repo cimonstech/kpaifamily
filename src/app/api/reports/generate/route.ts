@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth/session";
 import { logEvent } from "@/lib/db/audit";
-import { formatWhatsAppReport } from "@/lib/utils/report-formatter";
+import {
+  formatWhatsAppReport,
+  normalizeReportWhatsAppOptions,
+} from "@/lib/utils/report-formatter";
 import { generatePDF } from "@/lib/utils/pdf-generator";
 import { uploadPDF } from "@/lib/r2";
-import { calculateBalance } from "@/lib/utils/rate-calculator";
+import { calculateBalance, getMemberRateForMonth } from "@/lib/utils/rate-calculator";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberRate, Payment, ReportData } from "@/lib/types";
 
@@ -48,18 +51,54 @@ function lastDayOfMonthYm(ym: string): string {
   return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
 }
 
+function trendMonthLabel(d: Date): string {
+  const mon = d.toLocaleString("en-GB", { month: "short" });
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${mon} ${yy}`;
+}
+
+function buildMonthlyTrendFromPayments(
+  payments: Payment[],
+  reportMonthStart: Date
+): Array<{ month: string; amount: number }> {
+  const start = new Date(reportMonthStart);
+  start.setMonth(start.getMonth() - 11);
+  start.setDate(1);
+  start.setHours(12, 0, 0, 0);
+
+  const byYm = new Map<string, number>();
+  for (const p of payments) {
+    const key = p.date_paid.slice(0, 7);
+    byYm.set(key, (byYm.get(key) ?? 0) + p.amount);
+  }
+
+  const out: Array<{ month: string; amount: number }> = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(start);
+    d.setMonth(start.getMonth() + i);
+    const ymKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    out.push({
+      month: trendMonthLabel(d),
+      amount: byYm.get(ymKey) ?? 0,
+    });
+  }
+  return out;
+}
+
 export async function POST(request: Request) {
   const session = await getAdminSession(request);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { month?: string };
+  let body: { month?: string; options?: unknown };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  const reportOptions = normalizeReportWhatsAppOptions(body.options);
 
   const ym = body.month?.trim();
   if (!ym || !/^\d{4}-\d{2}$/.test(ym)) {
@@ -132,16 +171,21 @@ export async function POST(request: Request) {
   });
   const totalCollectedThisMonth = paymentsInMonth.reduce((s, p) => s + p.amount, 0);
 
-  type Row = ReportData["members"][number] & { name: string };
+  type Row = ReportData["members"][number] & { name: string; memberId: string };
 
   const pdfAndRows: Row[] = [];
   let totalOutstanding = 0;
 
-  const paidMembersWhatsapp: Array<{ name: string; anonymous: boolean }> = [];
+  const paidMembersWhatsapp: Array<{
+    name: string;
+    anonymous: boolean;
+    amountThisMonth: number;
+  }> = [];
   const unpaidMembersWhatsapp: Array<{
     name: string;
     anonymous: boolean;
     amountBehind: number;
+    monthsBehind: number;
   }> = [];
   const aheadMembersWhatsapp: Array<{
     name: string;
@@ -186,6 +230,7 @@ export async function POST(request: Request) {
     const displayName = anonymous ? "Anonymous" : name;
 
     pdfAndRows.push({
+      memberId: id,
       displayName,
       branch,
       anonymous,
@@ -198,9 +243,23 @@ export async function POST(request: Request) {
     });
 
     if (paidThisMonth) {
-      paidMembersWhatsapp.push({ name, anonymous });
+      paidMembersWhatsapp.push({
+        name,
+        anonymous,
+        amountThisMonth: amountPaidThisMonth,
+      });
     } else if (balance > 0.01) {
-      unpaidMembersWhatsapp.push({ name, anonymous, amountBehind: balance });
+      const monthlyRate = getMemberRateForMonth(rates, monthDate);
+      const monthsBehind =
+        monthlyRate > 0.01
+          ? Math.max(1, Math.ceil(balance / monthlyRate - 1e-9))
+          : 1;
+      unpaidMembersWhatsapp.push({
+        name,
+        anonymous,
+        amountBehind: balance,
+        monthsBehind,
+      });
     } else if (balance < -0.01) {
       aheadMembersWhatsapp.push({
         name,
@@ -218,7 +277,26 @@ export async function POST(request: Request) {
     paidMembers: paidMembersWhatsapp,
     unpaidMembers: unpaidMembersWhatsapp,
     aheadMembers: aheadMembersWhatsapp,
+    options: reportOptions,
   });
+
+  const monthlyTrend = buildMonthlyTrendFromPayments(allPayments, monthDate);
+
+  const topBehindMembers = [...pdfAndRows]
+    .filter((r) => r.balance > 0.01)
+    .sort((a, b) => b.balance - a.balance)
+    .slice(0, 10)
+    .map((r) => {
+      const rates = ratesByMember.get(r.memberId) ?? [];
+      const rate = getMemberRateForMonth(rates, monthDate);
+      const monthsBehind =
+        rate > 0.01 ? Math.max(1, Math.round(r.balance / rate)) : 1;
+      return {
+        displayName: r.displayName,
+        amountBehind: r.balance,
+        monthsBehind,
+      };
+    });
 
   const reportData: ReportData = {
     month: monthDate,
@@ -226,7 +304,9 @@ export async function POST(request: Request) {
     totalCollectedThisMonth,
     totalCollectedAllTime,
     totalOutstanding,
-    members: pdfAndRows.map(({ name: _omit, ...rest }) => rest),
+    monthlyTrend,
+    topBehindMembers,
+    members: pdfAndRows.map(({ name: _n, memberId: _m, ...rest }) => rest),
   };
 
   const pdfBytes = await generatePDF(reportData);
@@ -277,7 +357,7 @@ export async function POST(request: Request) {
     actor_role: session.role,
     ip_address: ip ?? undefined,
     user_agent: request.headers.get("user-agent") ?? undefined,
-    metadata: { month: ym },
+    metadata: { month: ym, whatsappOptions: reportOptions },
   });
 
   return NextResponse.json({

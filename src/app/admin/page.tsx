@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 
 export const metadata: Metadata = {
   title: "Dashboard | Admin",
@@ -9,7 +10,7 @@ import { calculateBalance } from "@/lib/utils/rate-calculator";
 import type { Member, MemberRate, Payment } from "@/lib/types";
 
 function formatCedis(n: number) {
-  return `₵${n.toFixed(2)}`;
+  return formatGhsCurrency(n);
 }
 
 function toMember(r: Record<string, unknown>): Member {

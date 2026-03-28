@@ -3,6 +3,7 @@
 import { GenerateReportModal } from "@/components/admin/GenerateReportModal";
 import { useToast } from "@/components/admin/Toast";
 import type { Report } from "@/lib/types";
+import { DEFAULT_REPORT_WHATSAPP_OPTIONS } from "@/lib/utils/report-formatter";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -59,7 +60,10 @@ export function ReportsClient({ initialReports }: { initialReports: Report[] }) 
       const res = await fetch("/api/reports/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: ym }),
+        body: JSON.stringify({
+          month: ym,
+          options: DEFAULT_REPORT_WHATSAPP_OPTIONS,
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Regeneration failed");

@@ -2,6 +2,7 @@
 
 import { PaymentModal } from "@/components/admin/PaymentModal";
 import { useToast } from "@/components/admin/Toast";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -25,7 +26,7 @@ export type ChecklistMemberVM = {
 };
 
 function formatCedis(n: number) {
-  return `₵${n.toFixed(2)}`;
+  return formatGhsCurrency(n);
 }
 
 function addMonthsYm(ym: string, delta: number): string {

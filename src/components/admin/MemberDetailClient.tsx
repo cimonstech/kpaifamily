@@ -2,6 +2,7 @@
 
 import { useToast } from "@/components/admin/Toast";
 import type { MemberRate, Payment } from "@/lib/types";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -34,7 +35,7 @@ export type MemberDetailVM = {
 };
 
 function formatCedis(n: number) {
-  return `₵${n.toFixed(2)}`;
+  return formatGhsCurrency(n);
 }
 
 function initials(name: string) {

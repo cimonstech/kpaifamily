@@ -1,6 +1,7 @@
 "use client";
 
 import { AddMemberModal } from "@/components/admin/AddMemberModal";
+import { formatGhsCurrency } from "@/lib/utils/currency";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -47,7 +48,7 @@ function initials(name: string) {
 }
 
 function formatCedis(n: number) {
-  return `₵${n.toFixed(2)}`;
+  return formatGhsCurrency(n);
 }
 
 type Tab = "all" | "active" | "behind" | "paidUp" | "inactive";
