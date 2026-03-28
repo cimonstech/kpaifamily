@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2017",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "outDir": "./scripts/dist"
+  },
+  "include": ["scripts/**/*"]
+}
