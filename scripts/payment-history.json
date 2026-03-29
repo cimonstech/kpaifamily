@@ -1,0 +1,292 @@
+[
+  {
+    "month": "2024-05",
+    "payments": [
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Batista Simons", "amount": 50 },
+      { "name": "Selorm Amezugbe", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2024-06",
+    "payments": [
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Festus Kornyo", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Batista Simons", "amount": 50 },
+      { "name": "Selorm Amezugbe", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2024-07",
+    "payments": [
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Batista Simons", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Selorm Amezugbe", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2024-08",
+    "payments": [
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Batista Simons", "amount": 50 },
+      { "name": "Kumah Adanuvor", "amount": 50 },
+      { "name": "Atawa Adanuvor", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Selorm Amezugbe", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2024-09",
+    "payments": [
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Eric Dzomeku", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2024-10",
+    "payments": [
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Atawa Adanuvor", "amount": 50 },
+      { "name": "Kumah Adanuvor", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2024-11",
+    "payments": [
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Kumah Adanuvor", "amount": 50 },
+      { "name": "Atawa Adanuvor", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2024-12",
+    "payments": [
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Samuel Adanuvor", "amount": 50 },
+      { "name": "Kumah Adanuvor", "amount": 50 },
+      { "name": "Atawa Adanuvor", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-01",
+    "payments": [
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Gloria Feyi", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-02",
+    "payments": [
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Gloria Feyi", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-03",
+    "payments": [
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-04",
+    "payments": [
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Helmut Adanuvor", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Raphael Ziga", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-05",
+    "payments": [
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-06",
+    "payments": [
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-07",
+    "payments": [
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-08",
+    "payments": [
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-09",
+    "payments": [
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-10",
+    "payments": [
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-11",
+    "payments": [
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 },
+      { "name": "Mawuli Ziga", "amount": 50 }
+    ]
+  },
+  {
+    "month": "2025-12",
+    "payments": [
+      { "name": "Mawuli Ziga", "amount": 50 },
+      { "name": "Valeria Kumah-Noi", "amount": 50 },
+      { "name": "Charlotte Marfo", "amount": 50 },
+      { "name": "Deborah Sefakor Kornyo", "amount": 50 },
+      { "name": "Enyonam Ziga", "amount": 50 },
+      { "name": "Justice Akrasi", "amount": 50 },
+      { "name": "Setri Foli", "amount": 50 }
+    ]
+  }
+]
