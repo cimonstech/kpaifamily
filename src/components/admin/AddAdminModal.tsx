@@ -5,6 +5,37 @@ import { useEffect, useState } from "react";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function EyeIcon({ show }: { show: boolean }) {
+  if (show) {
+    return (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+      />
+    </svg>
+  );
+}
+
 type AddAdminModalProps = {
   open: boolean;
   onClose: () => void;
@@ -64,31 +95,52 @@ export function AddAdminModal({ open, onClose, onSuccess }: AddAdminModalProps) 
 
   return (
     <div
-      className="fixed inset-0 z-[160] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+      className="neu-modal-backdrop motion-safe:animate-kpai-fade-in"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-[#1a1a2e]/10 bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6"
+        className="neu-modal-sheet neu-modal-sheet--lg motion-safe:animate-kpai-scale-in max-h-[90vh]"
         role="dialog"
         aria-modal
         aria-labelledby="add-admin-title"
         onClick={(ev) => ev.stopPropagation()}
       >
-        <h2
-          id="add-admin-title"
-          className="font-serif text-lg font-semibold text-[#1a1a2e]"
-        >
-          Add family admin
-        </h2>
-        <p className="mt-1 text-xs text-[#1a1a2e]/60">
-          Creates an admin account (not super admin). They can manage members and
-          payments but not system settings.
-        </p>
+        <div className="neu-modal-handle sm:hidden" aria-hidden />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 pr-2">
+            <h2
+              id="add-admin-title"
+              className="font-serif text-lg font-bold"
+              style={{ color: "var(--neu-text-primary)" }}
+            >
+              Add family admin
+            </h2>
+            <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+              Creates an admin account (not super admin). They can manage members and
+              payments but not system settings.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="neu-close-btn shrink-0"
+            aria-label="Close"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="text-xs font-medium text-[#1a1a2e]/60">
+            <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
               Email
             </label>
             <input
@@ -97,11 +149,11 @@ export function AddAdminModal({ open, onClose, onSuccess }: AddAdminModalProps) 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2 disabled:opacity-60"
+              className="neu-input mt-1 disabled:opacity-60"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-[#1a1a2e]/60">
+            <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
               Temporary Password
             </label>
             <div className="relative mt-1">
@@ -111,26 +163,35 @@ export function AddAdminModal({ open, onClose, onSuccess }: AddAdminModalProps) 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                className="w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 pr-20 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2 disabled:opacity-60"
+                className="neu-input pr-12 disabled:opacity-60"
               />
               <button
                 type="button"
                 tabIndex={-1}
                 onClick={() => setShowPw((s) => !s)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-[#e8b84b] hover:underline"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "none",
+                  padding: 4,
+                  color: "var(--neu-gold)",
+                }}
+                aria-label={showPw ? "Hide password" : "Show password"}
               >
-                {showPw ? "Hide" : "Show"}
+                <EyeIcon show={showPw} />
               </button>
             </div>
-            <p className="mt-1.5 text-xs text-[#1a1a2e]/45">
+            <p className="mt-1.5 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
               The admin will be required to change this on first login.
             </p>
           </div>
 
           {error ? (
-            <p className="text-sm text-red-600" role="alert">
+            <div className="neu-error-box text-sm" role="alert">
               {error}
-            </p>
+            </div>
           ) : null}
 
           <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
@@ -138,14 +199,14 @@ export function AddAdminModal({ open, onClose, onSuccess }: AddAdminModalProps) 
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-4 py-2 text-sm text-[#1a1a2e]/70 hover:bg-[#f8f7f4] sm:w-auto"
+              className="neu-button min-h-[44px] w-full sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] disabled:opacity-60 sm:w-auto"
+              className="neu-button-gold min-h-[44px] w-full sm:w-auto"
             >
               {loading ? "Creating…" : "Create admin"}
             </button>

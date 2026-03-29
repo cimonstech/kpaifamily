@@ -55,27 +55,39 @@ function ResetInner() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#1a1a2e] px-4 py-12 sm:py-16">
-      <div className="mx-auto w-full max-w-sm rounded-2xl border border-white/10 bg-[#1a1a2e] p-6 shadow-xl ring-1 ring-black/20 sm:p-8">
-        <h1 className="text-center font-serif text-2xl font-semibold text-[#e8b84b]">
+    <div className="neu-auth-page flex items-center justify-center px-4 py-12 sm:py-16">
+      <div className="neu-auth-card mx-auto motion-safe:animate-kpai-scale-in">
+        <h1
+          className="text-center font-serif text-2xl font-bold"
+          style={{ color: "var(--neu-gold)" }}
+        >
           {APP_NAME}
         </h1>
-        <p className="mt-2 text-center text-sm text-white/60">New password</p>
+        <p
+          className="mt-2 text-center text-sm"
+          style={{ color: "var(--neu-text-secondary)" }}
+        >
+          New password
+        </p>
+        <div className="neu-divider" />
 
         {success ? (
-          <p className="mt-8 text-center text-sm text-white/85">
+          <p className="text-center text-sm" style={{ color: "var(--neu-text-primary)" }}>
             Password reset. Redirecting to login…
           </p>
         ) : (
-          <form onSubmit={onSubmit} className="mt-8 space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             {!token ? (
-              <p className="text-sm text-amber-200/90" role="alert">
+              <p className="neu-error-box" role="alert">
                 Invalid or missing link. Request a new reset from the login
                 page.
               </p>
             ) : null}
             <div>
-              <label className="block text-xs font-medium text-white/60">
+              <label
+                className="block text-xs font-medium"
+                style={{ color: "var(--neu-text-secondary)" }}
+              >
                 New password
               </label>
               <input
@@ -84,11 +96,14 @@ function ResetInner() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none ring-[#e8b84b]/30 focus:ring-2"
+                className="neu-input mt-1"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-white/60">
+              <label
+                className="block text-xs font-medium"
+                style={{ color: "var(--neu-text-secondary)" }}
+              >
                 Confirm password
               </label>
               <input
@@ -97,26 +112,23 @@ function ResetInner() {
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-white outline-none ring-[#e8b84b]/30 focus:ring-2"
+                className="neu-input mt-1"
               />
             </div>
             {error ? (
-              <p className="text-sm text-red-300" role="alert">
+              <div className="neu-error-box" role="alert">
                 {error}
-              </p>
+              </div>
             ) : null}
             <button
               type="submit"
               disabled={loading || !token}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] py-3 text-sm font-semibold text-[#1a1a2e] shadow transition hover:bg-[#f0c35c] disabled:opacity-60"
+              className="neu-button-gold min-h-[48px] w-full"
             >
               {loading ? "Saving…" : "Reset Password"}
             </button>
             <p className="text-center text-sm">
-              <Link
-                href="/admin/login"
-                className="text-[#e8b84b] underline-offset-4 hover:underline"
-              >
+              <Link href="/admin/login" className="neu-link-gold">
                 Back to login
               </Link>
             </p>
@@ -131,7 +143,10 @@ export function AdminResetForm() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#1a1a2e] text-sm text-white/60">
+        <div
+          className="neu-auth-page flex min-h-screen items-center justify-center text-sm"
+          style={{ color: "var(--neu-text-secondary)" }}
+        >
           Loading…
         </div>
       }

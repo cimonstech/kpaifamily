@@ -57,30 +57,6 @@ function toPayment(p: Record<string, unknown>): Payment {
   };
 }
 
-function formatYm(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-/** Oldest → newest (24 months). */
-function monthKeysLast24(): string[] {
-  const keys: string[] = [];
-  const d = new Date();
-  d.setDate(1);
-  for (let i = 0; i < 24; i++) {
-    keys.push(formatYm(d));
-    d.setMonth(d.getMonth() - 1);
-  }
-  return keys.reverse();
-}
-
-function pillLabel(ym: string) {
-  const [y, m] = ym.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleString("en-US", {
-    month: "short",
-    year: "2-digit",
-  });
-}
-
 export default async function MemberDetailPage({
   params,
 }: {
@@ -124,7 +100,8 @@ export default async function MemberDetailPage({
       supabase
         .from("monthly_checklist")
         .select("month, paid")
-        .eq("member_id", id),
+        .eq("member_id", id)
+        .order("month", { ascending: true }),
     ]);
 
   const ratesAsc = (rawRates ?? [])
@@ -144,28 +121,15 @@ export default async function MemberDetailPage({
     toPayment(row as Record<string, unknown>)
   );
 
-  const paidByMonth = new Map<string, boolean>();
-  for (const row of rawChecklist ?? []) {
-    const r = row as { month: string; paid: boolean | null };
-    paidByMonth.set(r.month, r.paid === true);
-  }
-
-  const startYm = member.start_date
-    ? formatYm(new Date(member.start_date + "T12:00:00"))
-    : null;
-
-  const gridKeys = monthKeysLast24();
-  const monthGrid = gridKeys.map((key) => {
-    let state: "before" | "paid" | "unpaid";
-    if (!startYm || key < startYm) {
-      state = "before";
-    } else if (paidByMonth.get(key) === true) {
-      state = "paid";
-    } else {
-      state = "unpaid";
+  const checklist: { month: string; paid: boolean }[] = (rawChecklist ?? []).map(
+    (row) => {
+      const r = row as { month: string; paid: boolean | null };
+      return {
+        month: String(r.month),
+        paid: r.paid === true,
+      };
     }
-    return { key, label: pillLabel(key), state };
-  });
+  );
 
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
   const monthsPaidSum = payments.reduce((s, p) => s + p.months_covered, 0);
@@ -202,7 +166,7 @@ export default async function MemberDetailPage({
     monthsContributing,
     monthsPaidSum,
     monthsExpected: member.start_date ? monthsContributing : 0,
-    monthGrid,
+    checklist,
     currentMonthLabel,
     currentRate: getMemberRateForMonth(ratesAsc, new Date()),
   };

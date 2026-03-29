@@ -22,6 +22,15 @@ function formatDate(iso: string) {
   }
 }
 
+function adminInitials(email: string) {
+  const local = email.split("@")[0] ?? "?";
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]![0]!}${parts[1]![0]!}`.toUpperCase();
+  }
+  return local.slice(0, 2).toUpperCase() || "?";
+}
+
 export function SettingsClient({
   currentAdminId,
   currentRate,
@@ -63,49 +72,56 @@ export function SettingsClient({
 
   return (
     <div className="mx-auto max-w-3xl space-y-10">
-      <h1 className="font-serif text-2xl font-semibold text-[#1a1a2e]">
+      <h1 className="font-serif text-2xl font-bold" style={{ color: "var(--neu-text-primary)" }}>
         Settings
       </h1>
 
-      <section className="rounded-xl border border-[#1a1a2e]/10 bg-white p-6 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1a1a2e]/55">
+      <section className="neu-card">
+        <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: "var(--neu-text-secondary)" }}>
           Global contribution rate
         </h2>
-        <p className="mt-4 text-lg font-semibold text-[#1a1a2e]">
-          Current rate:{" "}
-          {formatGhsCurrency(currentRate).replace(/\.00$/, "")}/month
+        <p className="mt-4 text-2xl font-bold" style={{ color: "var(--neu-gold)" }}>
+          {formatGhsCurrency(currentRate).replace(/\.00$/, "")}
+          <span className="text-lg font-semibold" style={{ color: "var(--neu-text-secondary)" }}>
+            /month
+          </span>
         </p>
-        <p className="mt-1 text-sm text-[#1a1a2e]/65">
+        <p className="mt-1 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
           Effective since: {formatDate(effectiveSince)}
         </p>
         <button
           type="button"
           onClick={() => setRateOpen(true)}
-          className="mt-4 flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2.5 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] sm:w-auto"
+          className="neu-button-gold mt-4 flex min-h-[44px] w-full items-center justify-center sm:w-auto"
         >
           Change Global Rate
         </button>
 
         {globalHistory.length > 0 ? (
           <div className="mt-8">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#1a1a2e]/50">
+            <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--neu-text-secondary)" }}>
               Rate history
             </h3>
-            <div className="mt-2 overflow-x-auto rounded-lg border border-[#1a1a2e]/8">
+            <div className="neu-card-sm mt-2 overflow-x-auto p-0">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#f8f7f4] text-xs text-[#1a1a2e]/55">
+                <thead className="neu-table-head text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                   <tr>
                     <th className="px-3 py-2">Rate</th>
                     <th className="px-3 py-2">Effective from</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1a1a2e]/8">
+                <tbody>
                   {globalHistory.map((row) => (
-                    <tr key={row.id}>
-                      <td className="px-3 py-2">
+                    <tr
+                      key={row.id}
+                      style={{
+                        borderBottom: "1px solid color-mix(in srgb, var(--neu-shadow-dark) 12%, transparent)",
+                      }}
+                    >
+                      <td className="px-3 py-2" style={{ color: "var(--neu-text-primary)" }}>
                         {formatGhsCurrency(Number(row.rate))}
                       </td>
-                      <td className="px-3 py-2 text-[#1a1a2e]/75">
+                      <td className="px-3 py-2" style={{ color: "var(--neu-text-secondary)" }}>
                         {formatDate(row.effective_from)}
                       </td>
                     </tr>
@@ -117,61 +133,72 @@ export function SettingsClient({
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-[#1a1a2e]/10 bg-white p-6 shadow-sm">
+      <section className="neu-card">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1a1a2e]/55">
+          <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: "var(--neu-text-secondary)" }}>
             Admin accounts
           </h2>
           <button
             type="button"
             onClick={() => setAddOpen(true)}
-            className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] lg:w-auto"
+            className="neu-button-gold flex min-h-[44px] w-full items-center justify-center lg:w-auto"
           >
             Add Admin
           </button>
         </div>
 
-        <ul className="mt-6 divide-y divide-[#1a1a2e]/8">
+        <ul className="mt-6 space-y-3">
           {admins.map((a) => {
             const disableDelete =
               a.id === currentAdminId || a.role === "super";
             return (
-              <li
-                key={a.id}
-                className="flex flex-col gap-3 py-4 lg:flex-row lg:items-center lg:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-[#1a1a2e]">{a.email}</p>
-                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                    <span
-                      className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                        a.role === "super"
-                          ? "bg-[#e8b84b]/25 text-[#1a1a2e]"
-                          : "bg-[#1a1a2e]/10 text-[#1a1a2e]"
-                      }`}
+              <li key={a.id} className="neu-card-sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className="neu-avatar flex h-12 w-12 shrink-0 items-center justify-center text-sm font-bold"
+                      style={{
+                        background: "linear-gradient(145deg, #f0c05a, #d4a43c)",
+                        color: "var(--neu-navy)",
+                      }}
                     >
-                      {a.role}
-                    </span>
-                    <p className="text-xs text-[#1a1a2e]/55">
-                      Added {formatDate(a.created_at)}
-                    </p>
+                      {adminInitials(a.email)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                        {a.email}
+                      </p>
+                      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <span
+                          className={`neu-badge w-fit ${
+                            a.role === "super" ? "neu-badge-warning" : "neu-badge-neutral"
+                          }`}
+                          style={{ fontSize: 10, textTransform: "uppercase" as const }}
+                        >
+                          {a.role}
+                        </span>
+                        <p className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                          Added {formatDate(a.created_at)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    disabled={disableDelete || busyDelete === a.id}
+                    title={
+                      disableDelete
+                        ? a.role === "super"
+                          ? "Cannot delete super admin"
+                          : "Cannot delete your own account"
+                        : "Remove admin"
+                    }
+                    onClick={() => void deleteAdmin(a)}
+                    className="neu-button-danger min-h-[44px] w-full px-3 py-2 text-xs lg:w-auto"
+                  >
+                    {busyDelete === a.id ? "…" : "Delete"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={disableDelete || busyDelete === a.id}
-                  title={
-                    disableDelete
-                      ? a.role === "super"
-                        ? "Cannot delete super admin"
-                        : "Cannot delete your own account"
-                      : "Remove admin"
-                  }
-                  onClick={() => void deleteAdmin(a)}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800 disabled:cursor-not-allowed disabled:opacity-40 lg:w-auto"
-                >
-                  {busyDelete === a.id ? "…" : "Delete"}
-                </button>
               </li>
             );
           })}

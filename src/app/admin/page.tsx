@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatGhsCurrency } from "@/lib/utils/currency";
 
 export const metadata: Metadata = {
-  title: "Dashboard | Admin",
+  title: "Home | Admin",
 };
 import { calculateBalance } from "@/lib/utils/rate-calculator";
 import type { Member, MemberRate, Payment } from "@/lib/types";
@@ -183,119 +183,151 @@ export default async function AdminHomePage() {
   }));
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-5xl p-4 sm:p-8 lg:p-0" style={{ background: "transparent" }}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-[#1a1a2e]">
+          <h1 className="font-serif text-[22px] font-bold" style={{ color: "var(--neu-text-primary)" }}>
             Month of {monthHeading}
           </h1>
-          <p className="mt-1 text-sm text-[#1a1a2e]/55">
+          <p className="mt-1 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
             Overview and recent activity
           </p>
         </div>
-        <Link
-          href={`/admin/checklist/${ym}`}
-          className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#1a1a2e] px-4 py-2.5 text-sm font-semibold text-[#e8b84b] shadow transition hover:bg-[#252542] lg:w-auto"
-        >
+        <Link href={`/admin/checklist/${ym}`} className="neu-button-gold inline-flex min-h-[48px] w-full items-center justify-center lg:w-auto">
           View Full Checklist
         </Link>
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-[#1a1a2e]/50">
-            Total collected
-          </p>
-          <p className="mt-2 font-serif text-2xl font-semibold text-[#1a1a2e]">
-            {formatCedis(totalCollected)}
-          </p>
-          <p className="mt-1 text-xs text-[#1a1a2e]/45">All time</p>
+        <div className="neu-metric relative overflow-hidden">
+          <div
+            className="neu-avatar absolute right-3 top-3 h-8 w-8 text-[var(--neu-info)]"
+            style={{ fontSize: "14px", boxShadow: "var(--neu-flat)" }}
+          >
+            ◎
+          </div>
+          <span className="label">Total collected</span>
+          <span className="value">{formatCedis(totalCollected)}</span>
+          <span className="sub">All time</span>
         </div>
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-[#1a1a2e]/50">
-            Outstanding
-          </p>
-          <p className="mt-2 font-serif text-2xl font-semibold text-[#1a1a2e]">
-            {formatCedis(totalOutstanding)}
-          </p>
+        <div className="neu-metric relative overflow-hidden">
+          <div
+            className="neu-avatar absolute right-3 top-3 h-8 w-8 text-[var(--neu-warning)]"
+            style={{ fontSize: "14px", boxShadow: "var(--neu-flat)" }}
+          >
+            ◇
+          </div>
+          <span className="label">Outstanding</span>
+          <span className="value">{formatCedis(totalOutstanding)}</span>
         </div>
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-[#1a1a2e]/50">
-            Paid this month
-          </p>
-          <p className="mt-2 font-serif text-2xl font-semibold text-[#1a1a2e]">
-            {formatCedis(paidThisMonth)}
-          </p>
+        <div className="neu-metric relative overflow-hidden">
+          <div
+            className="neu-avatar absolute right-3 top-3 h-8 w-8 text-[var(--neu-success)]"
+            style={{ fontSize: "14px", boxShadow: "var(--neu-flat)" }}
+          >
+            ✓
+          </div>
+          <span className="label">Paid this month</span>
+          <span className="value">{formatCedis(paidThisMonth)}</span>
         </div>
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white p-5 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-[#1a1a2e]/50">
-            Not yet paid this month
-          </p>
-          <p className="mt-2 font-serif text-2xl font-semibold text-[#1a1a2e]">
-            {notYetPaidThisMonth}
-          </p>
-          <p className="mt-1 text-xs text-[#1a1a2e]/45">Active members</p>
+        <div className="neu-metric relative overflow-hidden">
+          <div
+            className="neu-avatar absolute right-3 top-3 h-8 w-8 text-[var(--neu-danger)]"
+            style={{ fontSize: "14px", boxShadow: "var(--neu-flat)" }}
+          >
+            !
+          </div>
+          <span className="label">Not yet paid</span>
+          <span className="value">{notYetPaidThisMonth}</span>
+          <span className="sub">Active members</span>
         </div>
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <section className="rounded-xl border border-[#1a1a2e]/10 bg-white p-6 shadow-sm">
-          <h2 className="font-serif text-lg font-semibold text-[#1a1a2e]">
+        <section className="neu-card">
+          <h2 className="font-serif text-lg font-bold" style={{ color: "var(--neu-text-primary)" }}>
             Recent payments
           </h2>
-          <ul className="mt-4 divide-y divide-[#1a1a2e]/10">
+          <ul className="mt-4 list-none p-0">
             {recentPayments.length === 0 ? (
-              <li className="py-4 text-sm text-[#1a1a2e]/50">No payments yet</li>
+              <li className="py-4 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
+                No payments yet
+              </li>
             ) : (
-              recentPayments.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-start justify-between gap-2 py-4 text-sm"
-                >
-                  <div>
-                    <p className="font-medium text-[#1a1a2e]">{p.memberName}</p>
-                    <p className="text-xs text-[#1a1a2e]/50">
-                      {new Date(p.date_paid).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                    {p.note ? (
-                      <p className="mt-1 text-xs text-[#1a1a2e]/65">{p.note}</p>
-                    ) : null}
+              recentPayments.map((p, idx) => (
+                <li key={p.id}>
+                  {idx > 0 ? <div className="neu-divider" style={{ margin: "0" }} /> : null}
+                  <div className="flex flex-wrap items-start justify-between gap-2 py-4 text-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="neu-avatar h-9 w-9 shrink-0 text-xs">
+                        {p.memberName
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((w) => w[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)}
+                      </div>
+                      <div>
+                        <p className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                          {p.memberName}
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                          {new Date(p.date_paid).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
+                        {p.note ? (
+                          <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                            {p.note}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <span className="font-bold" style={{ color: "var(--neu-gold)" }}>
+                      {formatCedis(p.amount)}
+                    </span>
                   </div>
-                  <span className="font-semibold text-[#1a1a2e]">
-                    {formatCedis(p.amount)}
-                  </span>
                 </li>
               ))
             )}
           </ul>
         </section>
 
-        <section className="rounded-xl border border-[#1a1a2e]/10 bg-white p-6 shadow-sm">
-          <h2 className="font-serif text-lg font-semibold text-[#1a1a2e]">
+        <section className="neu-card">
+          <h2 className="font-serif text-lg font-bold" style={{ color: "var(--neu-text-primary)" }}>
             Most behind
           </h2>
-          <p className="mt-1 text-xs text-[#1a1a2e]/50">
+          <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
             Top 5 active members by amount owed
           </p>
-          <ul className="mt-4 divide-y divide-[#1a1a2e]/10">
+          <ul className="mt-4 list-none p-0">
             {quickBehind.length === 0 ? (
-              <li className="py-4 text-sm text-[#1a1a2e]/50">
+              <li className="py-4 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
                 Everyone is caught up.
               </li>
             ) : (
-              quickBehind.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between gap-2 py-4 text-sm"
-                >
-                  <span className="font-medium text-[#1a1a2e]">{r.name}</span>
-                  <span className="font-semibold text-red-700">
-                    {formatCedis(r.owed)}
-                  </span>
+              quickBehind.map((r, idx) => (
+                <li key={r.id}>
+                  {idx > 0 ? <div className="neu-divider" style={{ margin: "0" }} /> : null}
+                  <div className="flex items-center justify-between gap-2 py-4 text-sm">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="neu-avatar flex h-6 w-6 shrink-0 text-[11px]"
+                        style={{ boxShadow: "var(--neu-flat)" }}
+                      >
+                        {idx + 1}
+                      </div>
+                      <span className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                        {r.name}
+                      </span>
+                    </div>
+                    <span className="font-bold" style={{ color: "#c53030" }}>
+                      {formatCedis(r.owed)}
+                    </span>
+                  </div>
                 </li>
               ))
             )}

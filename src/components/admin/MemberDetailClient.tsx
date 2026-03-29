@@ -29,7 +29,7 @@ export type MemberDetailVM = {
   monthsContributing: number;
   monthsPaidSum: number;
   monthsExpected: number;
-  monthGrid: { key: string; label: string; state: "before" | "paid" | "unpaid" }[];
+  checklist: { month: string; paid: boolean }[];
   currentMonthLabel: string;
   currentRate: number;
 };
@@ -88,25 +88,81 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
 
   const balanceLabel = useMemo(() => {
     if (!data.member.start_date && !data.member.active) {
-      return { text: "—", className: "text-[#1a1a2e]/50" };
+      return { text: "—", color: "var(--neu-text-secondary)" };
     }
     if (data.balance > 0.01) {
       return {
         text: `${formatCedis(data.balance)} behind`,
-        className: "text-red-700",
+        color: "var(--neu-danger)",
       };
     }
     if (data.balance < -0.01) {
       return {
         text: `${formatCedis(-data.balance)} ahead`,
-        className: "text-blue-700",
+        color: "var(--neu-info)",
       };
     }
     return {
       text: `${formatCedis(0)} even`,
-      className: "text-emerald-700",
+      color: "var(--neu-success)",
     };
   }, [data.balance, data.member.active, data.member.start_date]);
+
+  const monthStatusGrid = useMemo(() => {
+    type CellStatus = "paid" | "unpaid" | "before-start";
+    const months: Array<{
+      label: string;
+      monthStr: string;
+      status: CellStatus;
+    }> = [];
+
+    const now = new Date();
+    const endMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const windowStart = new Date(now.getFullYear(), now.getMonth() - 23, 1);
+
+    let startMonth: Date;
+    if (data.member.start_date) {
+      const start = new Date(`${data.member.start_date}T12:00:00`);
+      startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+    } else {
+      startMonth = windowStart;
+    }
+
+    const displayStart = new Date(
+      Math.min(startMonth.getTime(), windowStart.getTime())
+    );
+
+    const checklistMap = new Map<string, boolean>();
+    for (const c of data.checklist) {
+      const d = new Date(c.month);
+      if (Number.isNaN(d.getTime())) continue;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+      checklistMap.set(key, c.paid);
+    }
+
+    const current = new Date(displayStart);
+    while (current <= endMonth) {
+      const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}-01`;
+      const label = current.toLocaleDateString("en-GH", {
+        month: "short",
+        year: "2-digit",
+      });
+
+      let status: CellStatus;
+      if (current.getTime() < startMonth.getTime()) {
+        status = "before-start";
+      } else if (checklistMap.get(key) === true) {
+        status = "paid";
+      } else {
+        status = "unpaid";
+      }
+
+      months.push({ label, monthStr: key, status });
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    return months;
+  }, [data.checklist, data.member.start_date]);
 
   async function patchMember(body: Record<string, unknown>) {
     const res = await fetch(`/api/members/${memberId}`, {
@@ -204,13 +260,20 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
     <div className="mx-auto max-w-4xl pb-16">
       <Link
         href="/admin/members"
-        className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#1a1a2e]"
+        className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium hover:underline"
+        style={{ color: "var(--neu-text-secondary)" }}
       >
         ← Back to members
       </Link>
 
       <header className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#e8b84b] text-lg font-bold text-[#1a1a2e]">
+        <div
+          className="neu-avatar flex h-16 w-16 shrink-0 items-center justify-center text-lg font-bold"
+          style={{
+            background: "linear-gradient(145deg, #f0c05a, #d4a43c)",
+            color: "var(--neu-navy)",
+          }}
+        >
           {initials(data.member.name)}
         </div>
         <div className="min-w-0 flex-1">
@@ -220,18 +283,18 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                 <input
                   value={headerName}
                   onChange={(e) => setHeaderName(e.target.value)}
-                  className="max-w-xs rounded-lg border border-[#1a1a2e]/20 px-2 py-1 font-serif text-2xl font-semibold text-[#1a1a2e]"
+                  className="neu-input max-w-xs font-serif text-xl font-bold"
                 />
                 <input
                   value={headerBranch}
                   onChange={(e) => setHeaderBranch(e.target.value)}
-                  className="max-w-xs rounded-lg border border-[#1a1a2e]/20 px-2 py-1 text-sm text-[#1a1a2e]"
+                  className="neu-input max-w-xs text-sm"
                 />
                 <button
                   type="button"
                   disabled={saving}
                   onClick={saveHeader}
-                  className="flex min-h-[44px] items-center rounded-lg bg-[#1a1a2e] px-3 py-2 text-xs font-semibold text-[#e8b84b]"
+                  className="neu-button-gold min-h-[44px] px-3 py-2 text-xs"
                 >
                   Save
                 </button>
@@ -242,21 +305,23 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                     setHeaderBranch(data.member.branch);
                     setEditingHeader(false);
                   }}
-                  className="text-xs text-[#1a1a2e]/60"
+                  className="text-xs hover:underline"
+                  style={{ color: "var(--neu-text-secondary)" }}
                 >
                   Cancel
                 </button>
               </>
             ) : (
               <>
-                <h1 className="font-serif text-2xl font-semibold text-[#1a1a2e]">
+                <h1 className="font-serif text-2xl font-bold" style={{ color: "var(--neu-text-primary)" }}>
                   {data.member.name}
                 </h1>
                 <button
                   type="button"
                   aria-label="Edit name and branch"
                   onClick={() => setEditingHeader(true)}
-                  className="rounded p-1 text-[#1a1a2e]/45 hover:bg-[#1a1a2e]/5 hover:text-[#1a1a2e]"
+                  className="neu-button min-h-0 p-2"
+                  style={{ boxShadow: "var(--neu-flat)" }}
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
@@ -266,20 +331,22 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
             )}
           </div>
           {!editingHeader ? (
-            <p className="mt-1 text-[#1a1a2e]/65">{data.member.branch}</p>
+            <p className="mt-1" style={{ color: "var(--neu-text-secondary)" }}>
+              {data.member.branch}
+            </p>
           ) : null}
           <div className="mt-2 flex flex-wrap gap-2">
             {data.member.active ? (
-              <span className="rounded-full bg-[#1a1a2e]/10 px-2 py-0.5 text-xs font-medium text-[#1a1a2e]">
+              <span className="neu-badge neu-badge-neutral" style={{ fontSize: 11 }}>
                 Active
               </span>
             ) : (
-              <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-800">
+              <span className="neu-badge neu-badge-neutral" style={{ fontSize: 11 }}>
                 Not Active
               </span>
             )}
             {data.member.anonymous ? (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+              <span className="neu-badge neu-badge-warning" style={{ fontSize: 11 }}>
                 Anonymous on dashboard
               </span>
             ) : null}
@@ -288,45 +355,40 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
       </header>
 
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase text-[#1a1a2e]/50">
-            Total paid
-          </p>
-          <p className="mt-1 font-serif text-lg font-semibold text-[#1a1a2e] sm:text-xl">
-            {formatCedis(data.totalPaid)}
-          </p>
+        <div className="neu-metric">
+          <span className="label">Total paid</span>
+          <span className="value text-lg sm:text-xl">{formatCedis(data.totalPaid)}</span>
         </div>
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase text-[#1a1a2e]/50">
-            Credit
-          </p>
-          <p className="mt-1 font-serif text-lg font-semibold text-emerald-700 sm:text-xl">
+        <div className="neu-metric">
+          <span className="label">Credit</span>
+          <span className="value text-lg sm:text-xl" style={{ color: "var(--neu-success)" }}>
             {formatCedis(data.credit_balance)}
-          </p>
+          </span>
         </div>
-        <div className="col-span-2 rounded-xl border border-[#1a1a2e]/10 bg-white p-4 shadow-sm lg:col-span-1">
-          <p className="text-xs font-medium uppercase text-[#1a1a2e]/50">
-            Balance
-          </p>
-          <p className={`mt-1 font-serif text-lg font-semibold sm:text-xl ${balanceLabel.className}`}>
+        <div className="neu-metric col-span-2 lg:col-span-1">
+          <span className="label">Balance</span>
+          <span
+            className="value text-lg sm:text-xl"
+            style={{ color: balanceLabel.color }}
+          >
             {balanceLabel.text}
-          </p>
+          </span>
         </div>
       </div>
 
-      <p className="mt-6 text-sm text-[#1a1a2e]/65">
+      <p className="mt-6 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
         Months contributing:{" "}
-        <span className="font-semibold text-[#1a1a2e]">
+        <span className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
           {data.monthsContributing}
         </span>
         {" · "}
         Months paid (coverage):{" "}
-        <span className="font-semibold text-[#1a1a2e]">
+        <span className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
           {data.monthsPaidSum}
         </span>
         {" · "}
         Months expected (through today):{" "}
-        <span className="font-semibold text-[#1a1a2e]">
+        <span className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
           {data.monthsExpected}
         </span>
       </p>
@@ -335,63 +397,67 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
         <button
           type="button"
           onClick={() => setEditOpen((o) => !o)}
-          className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 bg-white px-4 py-2 text-sm font-semibold text-[#1a1a2e] shadow-sm hover:bg-[#f8f7f4] sm:w-auto"
+          className="neu-button flex min-h-[44px] w-full items-center justify-center sm:w-auto"
         >
           {editOpen ? "Close Edit Member" : "Edit Member"}
         </button>
 
         {editOpen ? (
-          <div className="mt-4 rounded-xl border border-[#1a1a2e]/10 bg-white p-6 shadow-sm">
+          <div className="neu-card mt-4">
             <div className="grid gap-4 lg:grid-cols-2">
               <div>
-                <label className="text-xs font-medium text-[#1a1a2e]/60">
+                <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                   Name
                 </label>
                 <input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm"
+                  className="neu-input mt-1 w-full"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-[#1a1a2e]/60">
+                <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                   Branch
                 </label>
                 <input
                   value={formBranch}
                   onChange={(e) => setFormBranch(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm"
+                  className="neu-input mt-1 w-full"
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-[#1a1a2e]">
+              <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={formActive}
                   onChange={(e) => setFormActive(e.target.checked)}
+                  className="neu-checkbox"
                 />
-                Active (contributing)
+                <span style={{ color: "var(--neu-text-primary)" }}>Active (contributing)</span>
               </label>
               <div>
-                <label className="text-xs font-medium text-[#1a1a2e]/60">
+                <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                   Contributing since (month)
                 </label>
                 <input
                   type="month"
                   value={formStartMonth}
                   onChange={(e) => setFormStartMonth(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm"
+                  className="neu-input mt-1 w-full"
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-[#1a1a2e] lg:col-span-2">
+              <label className="flex items-center gap-2 text-sm lg:col-span-2">
                 <input
                   type="checkbox"
                   checked={formAnonymous}
                   onChange={(e) => setFormAnonymous(e.target.checked)}
+                  className="neu-checkbox"
                 />
-                Anonymous on public dashboard
+                <span style={{ color: "var(--neu-text-primary)" }}>
+                  Anonymous on public dashboard
+                </span>
               </label>
               <div className="lg:col-span-2">
-                <label className="text-xs font-medium text-[#1a1a2e]/60">
+                <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                   Monthly rate (GHS)
                 </label>
                 <input
@@ -400,9 +466,9 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                   step="0.01"
                   value={formRate}
                   onChange={(e) => setFormRate(e.target.value)}
-                  className="mt-1 w-full max-w-xs rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm"
+                  className="neu-input mt-1 w-full max-w-xs"
                 />
-                <p className="mt-1 text-xs text-[#1a1a2e]/50">
+                <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                   Changing rate applies from {data.currentMonthLabel} onwards.
                 </p>
               </div>
@@ -411,7 +477,7 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
               type="button"
               disabled={saving}
               onClick={savePanel}
-              className="mt-6 flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#1a1a2e] px-4 py-2 text-sm font-semibold text-[#e8b84b] hover:bg-[#252542] disabled:opacity-60 sm:w-auto"
+              className="neu-button-gold mt-6 flex min-h-[44px] w-full items-center justify-center disabled:opacity-60 sm:w-auto"
             >
               {saving ? "Saving…" : "Save changes"}
             </button>
@@ -420,18 +486,21 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
       </div>
 
       <section className="mt-10">
-        <h2 className="font-serif text-lg font-semibold text-[#1a1a2e]">
+        <h2 className="font-serif text-lg font-bold" style={{ color: "var(--neu-text-primary)" }}>
           Rate history
         </h2>
         {data.rates.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-[#1a1a2e]/10 bg-white py-6 text-center text-sm text-[#1a1a2e]/50">
+          <p
+            className="neu-card-sm mt-3 py-6 text-center text-sm"
+            style={{ color: "var(--neu-text-secondary)" }}
+          >
             No rate history yet.
           </p>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-[#1a1a2e]/10 bg-white shadow-sm">
+          <div className="neu-card mt-3 overflow-x-auto p-0">
             <table className="w-full min-w-[400px] text-left text-sm">
-              <thead className="border-b border-[#1a1a2e]/10 bg-[#f8f7f4] text-xs uppercase text-[#1a1a2e]/55">
-                <tr>
+              <thead className="neu-table-head text-xs uppercase">
+                <tr style={{ color: "var(--neu-text-secondary)" }}>
                   <th className="px-4 py-2">Rate</th>
                   <th className="px-4 py-2">Effective from</th>
                   <th className="px-4 py-2">Source</th>
@@ -439,14 +508,19 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
               </thead>
               <tbody>
                 {data.rates.map((r) => (
-                  <tr key={r.id} className="border-b border-[#1a1a2e]/5">
-                    <td className="px-4 py-3 font-medium text-[#1a1a2e]">
+                  <tr
+                    key={r.id}
+                    style={{
+                      borderBottom: "1px solid color-mix(in srgb, var(--neu-shadow-dark) 12%, transparent)",
+                    }}
+                  >
+                    <td className="px-4 py-3 font-medium" style={{ color: "var(--neu-text-primary)" }}>
                       {formatCedis(r.rate)}
                     </td>
-                    <td className="px-4 py-3 text-[#1a1a2e]/70">
+                    <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
                       {new Date(r.effective_from).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 capitalize text-[#1a1a2e]/70">
+                    <td className="px-4 py-3 capitalize" style={{ color: "var(--neu-text-secondary)" }}>
                       {r.source}
                     </td>
                   </tr>
@@ -458,44 +532,46 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
       </section>
 
       <section className="mt-10">
-        <h2 className="font-serif text-lg font-semibold text-[#1a1a2e]">
+        <h2 className="font-serif text-lg font-bold" style={{ color: "var(--neu-text-primary)" }}>
           Payment history
         </h2>
         {data.payments.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-[#1a1a2e]/10 bg-white py-6 text-center text-sm text-[#1a1a2e]/50">
+          <p
+            className="neu-card-sm mt-3 py-6 text-center text-sm"
+            style={{ color: "var(--neu-text-secondary)" }}
+          >
             No payments yet.
           </p>
         ) : (
           <>
-            <ul className="mt-3 divide-y divide-[#1a1a2e]/10 rounded-xl border border-[#1a1a2e]/10 bg-white shadow-sm lg:hidden">
+            <ul className="mt-3 space-y-2 lg:hidden">
               {data.payments.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-start justify-between gap-3 p-4"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[#1a1a2e]">
-                      {new Date(p.date_paid).toLocaleDateString()} —{" "}
-                      {formatCedis(p.amount)}
-                    </p>
-                    <p className="mt-1 text-xs text-[#1a1a2e]/65">
-                      {p.note ?? "—"}
-                    </p>
+                <li key={p.id} className="neu-card-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                        {new Date(p.date_paid).toLocaleDateString()} —{" "}
+                        {formatCedis(p.amount)}
+                      </p>
+                      <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                        {p.note ?? "—"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => deletePayment(p.id)}
+                      className="neu-button-danger min-h-[40px] px-2 py-1 text-xs"
+                    >
+                      Delete
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => deletePayment(p.id)}
-                    className="flex min-h-[44px] shrink-0 items-center text-xs font-semibold text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
                 </li>
               ))}
             </ul>
-            <div className="mt-3 hidden overflow-x-auto rounded-xl border border-[#1a1a2e]/10 bg-white shadow-sm lg:block">
+            <div className="neu-card mt-3 hidden overflow-x-auto p-0 lg:block">
             <table className="w-full min-w-[560px] text-left text-sm">
-              <thead className="border-b border-[#1a1a2e]/10 bg-[#f8f7f4] text-xs uppercase text-[#1a1a2e]/55">
-                <tr>
+              <thead className="neu-table-head text-xs uppercase">
+                <tr style={{ color: "var(--neu-text-secondary)" }}>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Amount</th>
                   <th className="px-4 py-2">Months</th>
@@ -505,24 +581,30 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
               </thead>
               <tbody>
                 {data.payments.map((p) => (
-                  <tr key={p.id} className="border-b border-[#1a1a2e]/5">
-                    <td className="px-4 py-3 text-[#1a1a2e]/75">
+                  <tr
+                    key={p.id}
+                    style={{
+                      borderBottom: "1px solid color-mix(in srgb, var(--neu-shadow-dark) 12%, transparent)",
+                    }}
+                  >
+                    <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
                       {new Date(p.date_paid).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 font-medium text-[#1a1a2e]">
+                    <td className="px-4 py-3 font-medium" style={{ color: "var(--neu-text-primary)" }}>
                       {formatCedis(p.amount)}
                     </td>
-                    <td className="px-4 py-3 text-[#1a1a2e]/70">
+                    <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
                       {p.months_covered}
                     </td>
-                    <td className="px-4 py-3 text-[#1a1a2e]/65">
+                    <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
                       {p.note ?? "—"}
                     </td>
                     <td className="px-4 py-3">
                       <button
                         type="button"
                         onClick={() => deletePayment(p.id)}
-                        className="inline-flex min-h-[44px] items-center text-xs font-semibold text-red-600 hover:underline"
+                        className="text-xs font-semibold hover:underline"
+                        style={{ color: "var(--neu-danger)" }}
                       >
                         Delete
                       </button>
@@ -531,7 +613,14 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                 ))}
               </tbody>
               <tfoot>
-                <tr className="bg-[#f8f7f4] font-semibold text-[#1a1a2e]">
+                <tr
+                  className="font-semibold"
+                  style={{
+                    background: "var(--neu-bg)",
+                    boxShadow: "inset 0 2px 4px var(--neu-shadow-dark)",
+                    color: "var(--neu-text-primary)",
+                  }}
+                >
                   <td className="px-4 py-3">Running total</td>
                   <td className="px-4 py-3" colSpan={4}>
                     {formatCedis(data.totalPaid)}
@@ -545,25 +634,45 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
       </section>
 
       <section className="mt-10">
-        <h2 className="font-serif text-lg font-semibold text-[#1a1a2e]">
-          Monthly status (last 24 months)
+        <h2 className="font-serif text-lg font-bold" style={{ color: "var(--neu-text-primary)" }}>
+          Monthly status
         </h2>
-        <p className="mt-1 text-xs text-[#1a1a2e]/55">
+        <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
           Green = paid · Red = unpaid · Gray = before start
         </p>
         <div className="mt-4 grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-8">
-          {data.monthGrid.map((cell) => {
-            const cls =
-              cell.state === "paid"
-                ? "bg-emerald-500 text-white"
-                : cell.state === "unpaid"
-                  ? "bg-red-500 text-white"
-                  : "bg-gray-200 text-gray-600";
+          {monthStatusGrid.map((cell) => {
+            const style =
+              cell.status === "paid"
+                ? {
+                    background: "linear-gradient(135deg, #68d391, #38a169)",
+                    color: "white",
+                    boxShadow: "var(--neu-raised)",
+                  }
+                : cell.status === "unpaid"
+                  ? {
+                      background: "linear-gradient(135deg, #fc8181, #e53e3e)",
+                      color: "white",
+                      boxShadow:
+                        "3px 3px 6px #c5cad3, -3px -3px 6px #ffffff",
+                    }
+                  : {
+                      background: "var(--neu-bg)",
+                      color: "var(--neu-text-secondary)",
+                      boxShadow: "var(--neu-pressed-sm)",
+                    };
             return (
               <span
-                key={cell.key}
-                title={cell.key}
-                className={`rounded-full px-1.5 py-0.5 text-center text-[10px] font-medium sm:px-2 sm:py-1 sm:text-xs ${cls}`}
+                key={cell.monthStr}
+                title={cell.monthStr}
+                className="text-center font-medium"
+                style={{
+                  ...style,
+                  padding: "6px 10px",
+                  borderRadius: 20,
+                  fontSize: "11px",
+                  fontWeight: 500,
+                }}
               >
                 {cell.label}
               </span>

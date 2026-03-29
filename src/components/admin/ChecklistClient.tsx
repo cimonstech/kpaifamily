@@ -110,68 +110,67 @@ export function ChecklistClient({
   function balanceBadge(balance: number) {
     if (balance > 0.01) {
       return (
-        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+        <span className="neu-badge neu-badge-danger">
           {formatCedis(balance)} behind
         </span>
       );
     }
     if (balance < -0.01) {
       return (
-        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+        <span className="neu-badge neu-badge-info">
           {formatCedis(-balance)} ahead
         </span>
       );
     }
-    return (
-      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-        On track
-      </span>
-    );
+    return <span className="neu-badge neu-badge-neutral">On track</span>;
   }
 
   return (
     <div className="mx-auto max-w-4xl pb-8">
-      <div className="flex flex-col gap-4 border-b border-[#1a1a2e]/10 pb-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <h1 className="font-serif text-xl font-semibold text-[#1a1a2e] sm:text-2xl">
+          <h1
+            className="font-serif text-xl font-bold sm:text-2xl"
+            style={{ color: "var(--neu-text-primary)" }}
+          >
             Checklist — {title}
           </h1>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               href={`/admin/checklist/${prev}`}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 bg-white px-3 py-2 text-sm font-medium text-[#1a1a2e] shadow-sm transition hover:bg-[#f8f7f4] sm:w-auto"
+              className="neu-button min-h-[44px] w-full rounded-[99px] px-5 py-2.5 text-sm sm:w-auto"
             >
-              ← Previous month
+              ← Prev
             </Link>
             <Link
               href={`/admin/checklist/${next}`}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 bg-white px-3 py-2 text-sm font-medium text-[#1a1a2e] shadow-sm transition hover:bg-[#f8f7f4] sm:w-auto"
+              className="neu-button min-h-[44px] w-full rounded-[99px] px-5 py-2.5 text-sm sm:w-auto"
             >
-              Next month →
+              Next →
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 flex flex-col flex-wrap gap-3 text-sm text-[#1a1a2e]/80 sm:flex-row sm:items-center sm:gap-4">
-        <span className="rounded-lg bg-white px-3 py-2 ring-1 ring-[#1a1a2e]/10">
-          <span className="font-semibold text-emerald-700">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="neu-card-sm text-center text-sm">
+          <span className="font-bold" style={{ color: "var(--neu-success)" }}>
             {summary.paidCount}
           </span>{" "}
-          paid
-        </span>
-        <span className="rounded-lg bg-white px-3 py-2 ring-1 ring-[#1a1a2e]/10">
-          <span className="font-semibold text-amber-700">
+          <span style={{ color: "var(--neu-text-secondary)" }}>paid</span>
+        </div>
+        <div className="neu-card-sm text-center text-sm">
+          <span className="font-bold" style={{ color: "#c53030" }}>
             {summary.unpaidCount}
           </span>{" "}
-          unpaid
-        </span>
-        <span className="rounded-lg bg-white px-3 py-2 ring-1 ring-[#1a1a2e]/10 sm:flex-1 lg:flex-initial">
-          Total collected this month:{" "}
-          <span className="font-semibold text-[#1a1a2e]">
+          <span style={{ color: "var(--neu-text-secondary)" }}>unpaid</span>
+        </div>
+        <div className="neu-card-sm text-center text-sm sm:col-span-1">
+          <span style={{ color: "var(--neu-text-secondary)" }}>Collected: </span>
+          <span className="font-bold" style={{ color: "var(--neu-gold)" }}>
             {formatCedis(summary.totalCollectedMonth)}
           </span>
-        </span>
+        </div>
       </div>
 
       <input
@@ -179,16 +178,19 @@ export function ChecklistClient({
         placeholder="Search members…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="mt-6 w-full max-w-md rounded-lg border border-[#1a1a2e]/15 bg-white px-4 py-2.5 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 placeholder:text-[#1a1a2e]/35 focus:ring-2"
+        className="neu-input mt-6 max-w-md"
       />
 
       <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-[#1a1a2e]/50">
+        <h2
+          className="text-xs font-semibold uppercase tracking-[0.12em]"
+          style={{ color: "var(--neu-text-secondary)" }}
+        >
           Unpaid
         </h2>
         <ul className="mt-3 space-y-2">
           {unpaid.length === 0 ? (
-            <li className="rounded-lg bg-white px-4 py-6 text-center text-sm text-[#1a1a2e]/50 ring-1 ring-[#1a1a2e]/10">
+            <li className="neu-card-sm py-6 text-center text-sm" style={{ color: "var(--neu-text-secondary)" }}>
               No unpaid members in this view.
             </li>
           ) : (
@@ -202,26 +204,25 @@ export function ChecklistClient({
                     if (e.key === "Enter" || e.key === " ")
                       setModalMember(m);
                   }}
-                  className="flex cursor-pointer flex-col gap-2 rounded-xl border border-[#1a1a2e]/10 bg-white px-4 py-3 shadow-sm outline-none ring-[#e8b84b]/30 hover:border-[#e8b84b]/35 focus-visible:ring-2 lg:flex-row lg:items-center lg:gap-3"
+                  className="neu-card-sm neu-card-sm-interactive flex cursor-pointer flex-col gap-2 lg:flex-row lg:items-center lg:gap-3 outline-none"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center">
-                      <span
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 border-[#1a1a2e]/25 bg-white"
-                        aria-hidden
-                      />
+                      <span className="neu-check-placeholder" aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-[#1a1a2e]">{m.name}</p>
+                      <p className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
+                        {m.name}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 pl-[56px] lg:ml-auto lg:shrink-0 lg:pl-0">
-                    <span className="text-xs text-[#1a1a2e]/55">
+                    <span className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                       {formatCedis(m.monthlyRate)}/mo
                     </span>
                     {balanceBadge(m.balance)}
                     {m.credit_balance > 0.01 ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900">
+                      <span className="neu-badge neu-badge-success">
                         {formatCedis(m.credit_balance)} credit
                       </span>
                     ) : null}
@@ -237,42 +238,54 @@ export function ChecklistClient({
         <button
           type="button"
           onClick={() => setShowPaid((v) => !v)}
-          className="flex min-h-[48px] w-full items-center justify-between rounded-lg border border-[#1a1a2e]/10 bg-[#f8f7f4] px-4 py-3 text-left text-sm font-medium text-[#1a1a2e] transition hover:bg-[#efeee9]"
+          className="neu-button flex min-h-[48px] w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
         >
           Show paid ({paid.length})
-          <span className="text-[#1a1a2e]/50">{showPaid ? "▾" : "▸"}</span>
+          <span style={{ color: "var(--neu-text-secondary)" }}>{showPaid ? "▾" : "▸"}</span>
         </button>
         {showPaid ? (
           <ul className="mt-3 space-y-2">
             {paid.length === 0 ? (
-              <li className="text-center text-sm text-[#1a1a2e]/50">
+              <li className="text-center text-sm" style={{ color: "var(--neu-text-secondary)" }}>
                 No paid members this month.
               </li>
             ) : (
               paid.map((m) => (
                 <li key={m.id}>
-                  <div className="flex flex-col gap-2 rounded-xl border border-[#1a1a2e]/10 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:gap-3">
+                  <div
+                    className="neu-card-sm flex flex-col gap-2 opacity-85 sm:flex-row sm:items-center sm:gap-3"
+                    style={{ boxShadow: "var(--neu-pressed-sm)" }}
+                  >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center">
                         <span
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 border-[#e8b84b] bg-[#e8b84b] text-xs font-bold text-[#1a1a2e]"
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold"
+                          style={{
+                            width: 24,
+                            height: 24,
+                            background: "linear-gradient(145deg, #f0c05a, #d4a43c)",
+                            color: "var(--neu-navy)",
+                            boxShadow: "var(--neu-raised)",
+                          }}
                           aria-hidden
                         >
                           ✓
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-[#1a1a2e]">{m.name}</p>
+                        <p className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
+                          {m.name}
+                        </p>
                         {m.paymentDetail ? (
                           <>
-                            <p className="text-xs text-[#1a1a2e]/60">
+                            <p className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                               {formatCedis(m.paymentDetail.amount)} ·{" "}
                               {new Date(
                                 m.paymentDetail.date_paid
                               ).toLocaleDateString()}
                             </p>
                             {m.paymentDetail.note ? (
-                              <p className="mt-1 text-xs text-[#1a1a2e]/55">
+                              <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                                 {m.paymentDetail.note}
                               </p>
                             ) : null}
@@ -284,7 +297,7 @@ export function ChecklistClient({
                       <button
                         type="button"
                         onClick={() => deletePayment(m.paymentId!, m.name)}
-                        className="flex min-h-[44px] shrink-0 items-center justify-center self-start rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-50 sm:self-center"
+                        className="neu-button-danger min-h-[44px] self-start rounded-[99px] px-4 py-2 text-xs sm:self-center"
                       >
                         Undo
                       </button>

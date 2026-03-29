@@ -106,42 +106,63 @@ export function GenerateReportModal({
     checked: boolean,
     onChange: (v: boolean) => void
   ) => (
-    <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-[#1a1a2e]/10 bg-[#f8f7f4]/80 px-3 py-3">
+    <label className="neu-card-sm flex cursor-pointer items-start gap-3">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         disabled={loading}
-        className="mt-1 h-4 w-4 shrink-0 rounded border-[#1a1a2e]/25 text-[#e8b84b] focus:ring-[#e8b84b]"
+        className="neu-checkbox mt-0.5"
       />
-      <span className="text-sm text-[#1a1a2e]">{label}</span>
+      <span className="text-sm" style={{ color: "var(--neu-text-primary)" }}>
+        {label}
+      </span>
     </label>
   );
 
   return (
     <div
-      className="fixed inset-0 z-[160] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+      className="neu-modal-backdrop motion-safe:animate-kpai-fade-in"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-[#1a1a2e]/10 bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6"
+        className="neu-modal-sheet neu-modal-sheet--lg motion-safe:animate-kpai-scale-in max-h-[92vh]"
         role="dialog"
         aria-modal
         aria-labelledby="gen-report-title"
         onClick={(ev) => ev.stopPropagation()}
       >
-        <h2
-          id="gen-report-title"
-          className="font-serif text-lg font-semibold text-[#1a1a2e]"
-        >
-          {step === 1 ? "Generate report" : "Report ready"}
-        </h2>
+        <div className="neu-modal-handle sm:hidden" aria-hidden />
+        <div className="flex items-start justify-between gap-3">
+          <h2
+            id="gen-report-title"
+            className="font-serif text-lg font-bold pr-2"
+            style={{ color: "var(--neu-text-primary)" }}
+          >
+            {step === 1 ? "Generate report" : "Report ready"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="neu-close-btn shrink-0"
+            aria-label="Close"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         {step === 1 ? (
           <form onSubmit={onSubmit} className="mt-6 space-y-6">
             <div>
-              <label className="text-xs font-medium text-[#1a1a2e]/60">
+              <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                 Month
               </label>
               <input
@@ -149,17 +170,16 @@ export function GenerateReportModal({
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
                 disabled={loading}
-                className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2 disabled:opacity-60"
+                className="neu-input mt-1 disabled:opacity-60"
               />
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-[#1a1a2e]">
+              <h3 className="text-sm font-bold" style={{ color: "var(--neu-text-primary)" }}>
                 What to include in this report
               </h3>
-              <p className="mt-1 text-xs text-[#1a1a2e]/55">
-                Choose sections for the WhatsApp message (PDF always includes full
-                detail).
+              <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                Choose sections for the WhatsApp message (PDF always includes full detail).
               </p>
               <div className="mt-3 space-y-2">
                 {toggleRow(
@@ -202,16 +222,13 @@ export function GenerateReportModal({
             </div>
 
             <fieldset
-              className={`space-y-2 rounded-lg border border-[#1a1a2e]/10 p-3 ${!options.includeUnpaidMembers ? "opacity-50" : ""}`}
+              className={`neu-card-sm space-y-2 border-0 p-3 ${!options.includeUnpaidMembers ? "opacity-50" : ""}`}
             >
-              <legend className="px-1 text-xs font-semibold text-[#1a1a2e]/70">
+              <legend className="px-1 text-xs font-bold" style={{ color: "var(--neu-text-secondary)" }}>
                 For “Members who have not paid”
               </legend>
               {unpaidFilters.map((f) => (
-                <label
-                  key={f.id}
-                  className="flex cursor-pointer items-start gap-2"
-                >
+                <label key={f.id} className="flex cursor-pointer items-start gap-2">
                   <input
                     type="radio"
                     name="unpaidFilter"
@@ -220,17 +237,20 @@ export function GenerateReportModal({
                       setOptions((o) => ({ ...o, unpaidFilter: f.id }))
                     }
                     disabled={loading || !options.includeUnpaidMembers}
-                    className="mt-0.5 h-4 w-4 shrink-0 border-[#1a1a2e]/25 text-[#e8b84b] focus:ring-[#e8b84b]"
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    style={{ accentColor: "var(--neu-gold)" }}
                   />
-                  <span className="text-sm text-[#1a1a2e]">{f.label}</span>
+                  <span className="text-sm" style={{ color: "var(--neu-text-primary)" }}>
+                    {f.label}
+                  </span>
                 </label>
               ))}
             </fieldset>
 
             {error ? (
-              <p className="text-sm text-red-600" role="alert">
+              <div className="neu-error-box text-sm" role="alert">
                 {error}
-              </p>
+              </div>
             ) : null}
 
             <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
@@ -238,14 +258,14 @@ export function GenerateReportModal({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-4 py-2 text-sm text-[#1a1a2e]/70 hover:bg-[#f8f7f4] sm:w-auto"
+                className="neu-button min-h-[44px] w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || !month}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] disabled:opacity-60 sm:w-auto"
+                className="neu-button-gold min-h-[44px] w-full rounded-full sm:w-auto"
               >
                 {loading ? "Generating…" : "Generate Report"}
               </button>
@@ -253,14 +273,21 @@ export function GenerateReportModal({
           </form>
         ) : (
           <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-2 text-emerald-800">
+            <div className="flex items-center gap-2">
               <span
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-lg"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-lg font-bold"
+                style={{
+                  background: "linear-gradient(145deg, #68d391, #38a169)",
+                  color: "white",
+                  boxShadow: "var(--neu-flat)",
+                }}
                 aria-hidden
               >
                 ✓
               </span>
-              <p className="font-semibold text-[#1a1a2e]">Report ready!</p>
+              <p className="font-bold" style={{ color: "var(--neu-text-primary)" }}>
+                Report ready!
+              </p>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -268,24 +295,31 @@ export function GenerateReportModal({
                 href={pdfUrl ?? "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] sm:flex-1"
+                className="neu-button-gold flex min-h-[44px] w-full items-center justify-center rounded-full text-center text-sm sm:flex-1"
               >
                 Download PDF
               </a>
               <button
                 type="button"
                 onClick={() => void copyText()}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-4 py-2 text-sm font-semibold text-[#1a1a2e] hover:bg-[#f8f7f4] sm:flex-1"
+                className="neu-button flex min-h-[44px] w-full items-center justify-center rounded-full text-sm font-semibold sm:flex-1"
+                style={{ color: "var(--neu-text-primary)" }}
               >
                 Copy WhatsApp Message
               </button>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-[#1a1a2e]/60">
+              <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                 WhatsApp preview
               </label>
-              <pre className="mt-1 max-h-52 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[#1a1a2e]/12 bg-[#f8f7f4] px-3 py-2 font-sans text-xs leading-relaxed text-[#1a1a2e]">
+              <pre
+                className="neu-card-sm mt-1 max-h-52 overflow-y-auto whitespace-pre-wrap font-mono text-xs leading-relaxed"
+                style={{
+                  boxShadow: "var(--neu-pressed-sm)",
+                  color: "var(--neu-text-secondary)",
+                }}
+              >
                 {textSummary ?? ""}
               </pre>
             </div>
@@ -298,16 +332,19 @@ export function GenerateReportModal({
                 setTextSummary(null);
                 setError(null);
               }}
-              className="text-sm font-medium text-[#e8b84b] underline-offset-2 hover:underline"
+              className="text-sm font-medium hover:underline"
+              style={{ color: "var(--neu-gold)" }}
             >
               Regenerate with different options
             </button>
 
-            <div className="flex justify-stretch border-t border-[#1a1a2e]/10 pt-4 sm:justify-end">
+            <div className="neu-divider" style={{ margin: "1rem 0" }} />
+
+            <div className="flex justify-stretch pt-2 sm:justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-4 py-2 text-sm text-[#1a1a2e]/70 hover:bg-[#f8f7f4] sm:w-auto"
+                className="neu-button min-h-[44px] w-full sm:w-auto"
               >
                 Close
               </button>

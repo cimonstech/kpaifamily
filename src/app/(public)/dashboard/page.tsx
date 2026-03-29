@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import {
   DashboardMemberList,
   type DashboardMemberRow,
@@ -156,17 +157,20 @@ export default async function DashboardPage() {
   });
 
   return (
-    <DashboardMemberList
-      members={rows}
-      updatedAt={updatedAt}
-      headerDate={headerDate}
-      latestGlobalRate={latestGlobalRate}
-      summary={{
-        totalCollected,
-        totalOutstanding,
-        membersPaidUp,
-        membersBehind,
-      }}
-    />
+    <>
+      <DashboardMemberList
+        members={rows}
+        updatedAt={updatedAt}
+        headerDate={headerDate}
+        latestGlobalRate={latestGlobalRate}
+        summary={{
+          totalCollected,
+          totalOutstanding,
+          membersPaidUp,
+          membersBehind,
+        }}
+      />
+      <PWAInstallPrompt startUrl="/" />
+    </>
   );
 }

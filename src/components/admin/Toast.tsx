@@ -55,12 +55,36 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {toast ? (
         <div
           role="status"
-          className={`fixed bottom-4 right-4 z-[200] max-w-sm rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all duration-300 ease-out ${
-            toast.type === "success"
-              ? "bg-emerald-600 text-white"
-              : "bg-red-600 text-white"
-          } ${visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}`}
+          className="fixed z-[200] flex max-w-sm items-center gap-2.5 rounded-xl px-5 py-3 text-sm font-medium motion-safe:transition-[transform,opacity] motion-safe:duration-300 motion-safe:ease-kpai max-lg:bottom-24 max-lg:left-1/2 max-lg:-translate-x-1/2 lg:bottom-4 lg:right-4"
+          style={{
+            background: "var(--neu-bg)",
+            boxShadow: "var(--neu-raised-lg)",
+            color: "var(--neu-text-primary)",
+            borderLeft:
+              toast.type === "success"
+                ? "4px solid var(--neu-success)"
+                : "4px solid var(--neu-danger)",
+            opacity: visible ? 1 : 0,
+            transform: visible
+              ? "translateY(0)"
+              : "translateY(12px)",
+          }}
         >
+          {toast.type === "success" ? (
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+              style={{ background: "var(--neu-success)" }}
+            >
+              ✓
+            </span>
+          ) : (
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+              style={{ background: "var(--neu-danger)" }}
+            >
+              ✕
+            </span>
+          )}
           {toast.message}
         </div>
       ) : null}

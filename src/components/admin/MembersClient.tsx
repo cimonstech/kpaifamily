@@ -20,27 +20,6 @@ export type MemberRowVM = {
   status: "ahead" | "ok" | "behind" | "pending";
 };
 
-const BRANCH_AVATAR = [
-  "bg-rose-200 text-rose-900",
-  "bg-amber-200 text-amber-900",
-  "bg-emerald-200 text-emerald-900",
-  "bg-sky-200 text-sky-900",
-  "bg-violet-200 text-violet-900",
-  "bg-orange-200 text-orange-900",
-  "bg-cyan-200 text-cyan-900",
-  "bg-fuchsia-200 text-fuchsia-900",
-  "bg-lime-200 text-lime-900",
-  "bg-indigo-200 text-indigo-900",
-];
-
-function branchAvatarClass(branch: string): string {
-  let h = 0;
-  for (let i = 0; i < branch.length; i++) {
-    h = branch.charCodeAt(i) + ((h << 5) - h);
-  }
-  return BRANCH_AVATAR[Math.abs(h) % BRANCH_AVATAR.length]!;
-}
-
 function initials(name: string) {
   const p = name.trim().split(/\s+/).filter(Boolean);
   if (p.length >= 2) return `${p[0]![0]!}${p[1]![0]!}`.toUpperCase();
@@ -95,7 +74,7 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
   function statusBadge(m: MemberRowVM) {
     if (!m.active) {
       return (
-        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-800">
+        <span className="neu-badge neu-badge-neutral" style={{ fontSize: 11 }}>
           Not Active
         </span>
       );
@@ -103,25 +82,25 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
     switch (m.status) {
       case "behind":
         return (
-          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+          <span className="neu-badge neu-badge-danger" style={{ fontSize: 11 }}>
             Behind
           </span>
         );
       case "ahead":
         return (
-          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+          <span className="neu-badge neu-badge-info" style={{ fontSize: 11 }}>
             Ahead
           </span>
         );
       case "ok":
         return (
-          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+          <span className="neu-badge neu-badge-success" style={{ fontSize: 11 }}>
             Paid Up
           </span>
         );
       default:
         return (
-          <span className="rounded-full bg-[#1a1a2e]/10 px-2 py-0.5 text-xs font-medium text-[#1a1a2e]">
+          <span className="neu-badge neu-badge-neutral" style={{ fontSize: 11 }}>
             Active
           </span>
         );
@@ -130,25 +109,40 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
 
   function balanceCell(m: MemberRowVM) {
     if (!m.active || m.status === "pending") {
-      return <span className="text-sm text-[#1a1a2e]/40">—</span>;
+      return (
+        <span className="text-sm" style={{ color: "var(--neu-text-secondary)" }}>
+          —
+        </span>
+      );
     }
     if (m.status === "behind") {
       return (
-        <span className="text-sm font-semibold text-red-700">
+        <span className="text-sm font-semibold" style={{ color: "var(--neu-danger)" }}>
           {formatCedis(m.balance)}
         </span>
       );
     }
     if (m.status === "ahead") {
       return (
-        <span className="text-sm font-semibold text-blue-700">
+        <span className="text-sm font-semibold" style={{ color: "var(--neu-info)" }}>
           +{formatCedis(-m.balance)}
         </span>
       );
     }
     return (
-      <span className="text-sm font-semibold text-emerald-700">
+      <span className="text-sm font-semibold" style={{ color: "var(--neu-success)" }}>
         {formatCedis(0)}
+      </span>
+    );
+  }
+
+  function rateBadge(m: MemberRowVM) {
+    return (
+      <span
+        className="neu-badge neu-badge-neutral shrink-0"
+        style={{ fontSize: 11 }}
+      >
+        {formatCedis(m.currentRate)}/mo
       </span>
     );
   }
@@ -165,17 +159,18 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
-          <h1 className="font-serif text-2xl font-semibold text-[#1a1a2e]">
+          <h1
+            className="font-serif text-2xl font-bold"
+            style={{ color: "var(--neu-text-primary)" }}
+          >
             Members
           </h1>
-          <span className="rounded-full bg-[#1a1a2e]/10 px-3 py-1 text-xs font-semibold text-[#1a1a2e]">
-            {members.length} total
-          </span>
+          <span className="neu-badge neu-badge-neutral">{members.length} total</span>
         </div>
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2.5 text-sm font-semibold text-[#1a1a2e] shadow transition hover:bg-[#f0c35c] sm:w-auto"
+          className="neu-button-gold flex min-h-[48px] w-full items-center justify-center sm:w-auto"
         >
           Add Member
         </button>
@@ -187,10 +182,8 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition min-h-[44px] lg:min-h-0 lg:py-1.5 ${
-              tab === t.id
-                ? "bg-[#1a1a2e] text-[#e8b84b]"
-                : "bg-white text-[#1a1a2e]/70 ring-1 ring-[#1a1a2e]/10 hover:bg-[#f8f7f4]"
+            className={`neu-button shrink-0 rounded-full px-4 py-2 text-xs min-h-[44px] lg:min-h-0 lg:py-1.5 ${
+              tab === t.id ? "neu-tab-active" : ""
             }`}
           >
             {t.label}
@@ -203,33 +196,23 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
         placeholder="Search name or branch…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="mt-4 w-full max-w-md rounded-lg border border-[#1a1a2e]/15 bg-white px-4 py-2.5 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 placeholder:text-[#1a1a2e]/35 focus:ring-2"
+        className="neu-input mt-4 w-full max-w-md"
       />
 
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white px-4 py-3 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-[#1a1a2e]/50">
-            Active members
-          </p>
-          <p className="mt-1 font-serif text-xl font-semibold text-[#1a1a2e]">
-            {stats.activeCount}
-          </p>
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="neu-metric">
+          <span className="label">Active members</span>
+          <span className="value">{stats.activeCount}</span>
         </div>
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white px-4 py-3 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-[#1a1a2e]/50">
-            Behind
-          </p>
-          <p className="mt-1 font-serif text-xl font-semibold text-red-700">
+        <div className="neu-metric">
+          <span className="label">Behind</span>
+          <span className="value" style={{ color: "var(--neu-danger)" }}>
             {stats.behindCount}
-          </p>
+          </span>
         </div>
-        <div className="rounded-xl border border-[#1a1a2e]/10 bg-white px-4 py-3 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wide text-[#1a1a2e]/50">
-            Total outstanding
-          </p>
-          <p className="mt-1 font-serif text-xl font-semibold text-[#1a1a2e]">
-            {formatCedis(stats.outstanding)}
-          </p>
+        <div className="neu-metric">
+          <span className="label">Total outstanding</span>
+          <span className="value">{formatCedis(stats.outstanding)}</span>
         </div>
       </div>
 
@@ -244,21 +227,24 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                 if (e.key === "Enter" || e.key === " ")
                   router.push(`/admin/members/${m.id}`);
               }}
-              className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#1a1a2e]/10 bg-white p-4 text-left shadow-sm outline-none ring-[#e8b84b]/30 transition hover:border-[#e8b84b]/35 focus-visible:ring-2"
+              className="neu-card-sm neu-card-sm-interactive flex cursor-pointer items-start gap-3 text-left outline-none"
             >
-              <div
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${branchAvatarClass(m.branch)}`}
-              >
+              <div className="neu-avatar h-10 w-10 shrink-0 text-xs">
                 {initials(m.name)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-[#1a1a2e]">{m.name}</p>
+                <p className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                  {m.name}
+                </p>
                 {m.branch ? (
-                  <p className="text-xs text-[#1a1a2e]/55">{m.branch}</p>
+                  <p className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                    {m.branch}
+                  </p>
                 ) : null}
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {statusBadge(m)}
-                  <span className="text-sm text-[#1a1a2e]">
+                  {rateBadge(m)}
+                  <span className="text-sm" style={{ color: "var(--neu-text-primary)" }}>
                     {balanceCell(m)}
                   </span>
                 </div>
@@ -266,7 +252,8 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
               <Link
                 href={`/admin/members/${m.id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="flex min-h-[44px] shrink-0 items-center text-xs font-semibold text-[#e8b84b] hover:underline"
+                className="flex min-h-[44px] shrink-0 items-center text-xs font-semibold hover:underline"
+                style={{ color: "var(--neu-gold)" }}
               >
                 View
               </Link>
@@ -275,15 +262,18 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
         ))}
       </ul>
       {filtered.length === 0 ? (
-        <p className="mt-8 py-10 text-center text-sm text-[#1a1a2e]/50 lg:hidden">
+        <p
+          className="mt-8 py-10 text-center text-sm lg:hidden"
+          style={{ color: "var(--neu-text-secondary)" }}
+        >
           No members match your filters.
         </p>
       ) : null}
 
-      <div className="mt-8 hidden overflow-hidden rounded-xl border border-[#1a1a2e]/10 bg-white shadow-sm lg:block">
+      <div className="neu-card mt-8 hidden overflow-hidden p-0 lg:block">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="border-b border-[#1a1a2e]/10 bg-[#f8f7f4] text-xs font-semibold uppercase tracking-wide text-[#1a1a2e]/55">
-            <tr>
+          <thead className="neu-table-head text-xs font-semibold uppercase tracking-wide">
+            <tr style={{ color: "var(--neu-text-secondary)" }}>
               <th className="px-4 py-3">Member</th>
               <th className="px-4 py-3">Branch</th>
               <th className="px-4 py-3">Status</th>
@@ -296,22 +286,27 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
             {filtered.map((m) => (
               <tr
                 key={m.id}
-                className="cursor-pointer border-b border-[#1a1a2e]/5 transition hover:bg-[#f8f7f4]/80"
+                className="neu-table-row-hover cursor-pointer transition"
+                style={{
+                  borderBottom: "1px solid color-mix(in srgb, var(--neu-shadow-dark) 20%, transparent)",
+                }}
                 onClick={() => router.push(`/admin/members/${m.id}`)}
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${branchAvatarClass(m.branch)}`}
-                    >
+                    <div className="neu-avatar h-10 w-10 shrink-0 text-xs">
                       {initials(m.name)}
                     </div>
-                    <span className="font-medium text-[#1a1a2e]">{m.name}</span>
+                    <span className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                      {m.name}
+                    </span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-[#1a1a2e]/70">{m.branch}</td>
+                <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
+                  {m.branch}
+                </td>
                 <td className="px-4 py-3">{statusBadge(m)}</td>
-                <td className="px-4 py-3 text-[#1a1a2e]">
+                <td className="px-4 py-3" style={{ color: "var(--neu-text-primary)" }}>
                   {formatCedis(m.currentRate)}/mo
                 </td>
                 <td className="px-4 py-3">{balanceCell(m)}</td>
@@ -319,7 +314,8 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                   <Link
                     href={`/admin/members/${m.id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex min-h-[44px] items-center text-xs font-semibold text-[#e8b84b] hover:underline"
+                    className="inline-flex min-h-[44px] items-center text-xs font-semibold hover:underline"
+                    style={{ color: "var(--neu-gold)" }}
                   >
                     View
                   </Link>
@@ -329,7 +325,7 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
           </tbody>
         </table>
         {filtered.length === 0 ? (
-          <p className="py-10 text-center text-sm text-[#1a1a2e]/50">
+          <p className="py-10 text-center text-sm" style={{ color: "var(--neu-text-secondary)" }}>
             No members match your filters.
           </p>
         ) : null}

@@ -39,23 +39,37 @@ export function CodeEntryForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#f8f7f4] px-4 py-12 sm:py-16">
-      <div className="mx-auto w-full max-w-sm text-center rounded-2xl border border-[#1a1a2e]/10 bg-white p-6 shadow-sm lg:p-8">
-        <h1 className="font-serif text-3xl font-semibold tracking-tight text-[#e8b84b] sm:text-4xl">
+    <div
+      className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:py-16"
+      style={{ background: "var(--neu-bg)" }}
+    >
+      <div
+        className="neu-card mx-auto w-full max-w-[380px] p-10 text-center motion-safe:animate-kpai-scale-in"
+      >
+        <h1
+          className="font-serif text-[28px] font-bold"
+          style={{ color: "var(--neu-gold)" }}
+        >
           {APP_NAME}
         </h1>
-        <p className="mt-2 text-sm text-[#1a1a2e]/75">
+        <p
+          className="mb-8 mt-2 text-sm"
+          style={{ color: "var(--neu-text-secondary)" }}
+        >
           Family Contributions Tracker
         </p>
 
-        <div className="mx-auto mt-8 flex justify-center text-[#1a1a2e]/50">
+        <div
+          className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full"
+          style={{ boxShadow: "var(--neu-raised)" }}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="32"
-            height="32"
+            width="28"
+            height="28"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="currentColor"
+            stroke="var(--neu-gold)"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -66,8 +80,8 @@ export function CodeEntryForm() {
           </svg>
         </div>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-4">
-          <label className="block text-left">
+        <form onSubmit={onSubmit} className="space-y-4 text-left">
+          <label className="block">
             <span className="sr-only">Access code</span>
             <input
               type="text"
@@ -79,12 +93,19 @@ export function CodeEntryForm() {
               onChange={(e) =>
                 setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
               }
-              className="w-full rounded-lg border border-[#1a1a2e]/15 bg-white px-4 py-3 text-center font-mono text-lg tracking-[0.2em] text-[#1a1a2e] shadow-sm outline-none ring-[#e8b84b]/30 transition placeholder:text-[#1a1a2e]/35 focus:ring-2"
+              className="neu-input text-center font-mono text-base font-semibold tracking-[0.2em]"
             />
           </label>
 
           {error ? (
-            <p className="text-sm text-red-600" role="alert">
+            <p
+              className="rounded-full px-3 py-2 text-center text-sm"
+              style={{
+                background: "rgba(252, 129, 129, 0.25)",
+                color: "#c53030",
+              }}
+              role="alert"
+            >
               {error}
             </p>
           ) : null}
@@ -92,14 +113,17 @@ export function CodeEntryForm() {
           <button
             type="submit"
             disabled={loading || code.trim().length === 0}
-            className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#1a1a2e] py-3 text-sm font-semibold text-[#e8b84b] shadow transition hover:bg-[#252542] disabled:cursor-not-allowed disabled:opacity-60"
+            className="neu-button-gold mt-4 min-h-[48px] w-full"
           >
             {loading ? "Checking…" : "View Dashboard"}
           </button>
         </form>
 
-        <p className="mt-6 text-xs text-[#1a1a2e]/50">
-          Contact the family admin for your access code
+        <p
+          className="mt-4 text-center text-xs"
+          style={{ color: "var(--neu-text-secondary)" }}
+        >
+          Contact your family admin for the code
         </p>
       </div>
     </div>

@@ -27,7 +27,48 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  /** Browsers request `/favicon.ico` at the root; assets live in `/favicon/`. */
+  async rewrites() {
+    return [
+      { source: "/favicon.ico", destination: "/favicon/favicon.ico" },
+      {
+        source: "/apple-touch-icon.png",
+        destination: "/favicon/apple-touch-icon.png",
+      },
+    ];
+  },
   headers: async () => [
+    {
+      source: "/sw.js",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=0, must-revalidate",
+        },
+        {
+          key: "Service-Worker-Allowed",
+          value: "/",
+        },
+      ],
+    },
+    {
+      source: "/manifest.json",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=0, must-revalidate",
+        },
+      ],
+    },
+    {
+      source: "/manifest-admin.json",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=0, must-revalidate",
+        },
+      ],
+    },
     { source: "/(.*)", headers: securityHeaders },
   ],
 };

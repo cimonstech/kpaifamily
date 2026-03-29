@@ -79,13 +79,13 @@ export function ReportsClient({ initialReports }: { initialReports: Report[] }) 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <h1 className="font-serif text-2xl font-semibold text-[#1a1a2e]">
+        <h1 className="font-serif text-2xl font-bold" style={{ color: "var(--neu-text-primary)" }}>
           Reports
         </h1>
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2.5 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] sm:w-auto"
+          className="neu-button-gold flex min-h-[44px] w-full items-center justify-center rounded-full sm:w-auto"
         >
           Generate Report
         </button>
@@ -93,16 +93,13 @@ export function ReportsClient({ initialReports }: { initialReports: Report[] }) 
 
       <ul className="mt-10 space-y-4">
         {initialReports.map((r) => (
-          <li
-            key={r.id}
-            className="rounded-xl border border-[#1a1a2e]/10 bg-white p-5 shadow-sm"
-          >
+          <li key={r.id} className="neu-card">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h2 className="font-semibold text-[#1a1a2e]">
+                <h2 className="text-xl font-bold" style={{ color: "var(--neu-text-primary)" }}>
                   {formatReportMonth(r.month)}
                 </h2>
-                <p className="mt-1 text-xs text-[#1a1a2e]/55">
+                <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                   Generated {formatGeneratedAt(r.generated_at)}
                 </p>
               </div>
@@ -112,7 +109,7 @@ export function ReportsClient({ initialReports }: { initialReports: Report[] }) 
                     href={r.pdf_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-center text-xs font-medium text-[#1a1a2e] hover:bg-[#f8f7f4] sm:w-auto"
+                    className="neu-button-gold flex min-h-[44px] w-full items-center justify-center rounded-full px-4 text-center text-xs font-semibold sm:w-auto"
                   >
                     Download PDF
                   </a>
@@ -120,7 +117,8 @@ export function ReportsClient({ initialReports }: { initialReports: Report[] }) 
                 <button
                   type="button"
                   onClick={() => void copyWhatsapp(r.text_summary)}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-xs font-medium text-[#1a1a2e] hover:bg-[#f8f7f4] sm:w-auto"
+                  className="neu-button flex min-h-[44px] w-full items-center justify-center rounded-full px-4 text-xs font-medium sm:w-auto"
+                  style={{ color: "var(--neu-text-primary)" }}
                 >
                   Copy WhatsApp Text
                 </button>
@@ -128,7 +126,8 @@ export function ReportsClient({ initialReports }: { initialReports: Report[] }) 
                   type="button"
                   disabled={busyId === r.id}
                   onClick={() => void regenerate(r)}
-                  className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#e8b84b]/40 bg-[#e8b84b]/10 px-3 py-2 text-xs font-semibold text-[#1a1a2e] hover:bg-[#e8b84b]/20 disabled:opacity-50 sm:w-auto"
+                  className="neu-button flex min-h-[44px] w-full items-center justify-center rounded-full px-3 py-2 text-xs font-medium disabled:opacity-50 sm:w-auto"
+                  style={{ color: "var(--neu-text-primary)" }}
                 >
                   {busyId === r.id ? "Working…" : "Regenerate"}
                 </button>
@@ -139,7 +138,7 @@ export function ReportsClient({ initialReports }: { initialReports: Report[] }) 
       </ul>
 
       {initialReports.length === 0 ? (
-        <p className="mt-10 text-center text-sm text-[#1a1a2e]/55">
+        <p className="mt-10 text-center text-sm" style={{ color: "var(--neu-text-secondary)" }}>
           No reports yet. Generate one for the current month.
         </p>
       ) : null}

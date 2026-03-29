@@ -39,34 +39,34 @@ function formatTimestamp(iso: string) {
   }
 }
 
-function eventBadgeClass(event: string) {
+function eventBadgeClass(event: string): string {
   if (
     event.includes("FAILED") ||
     event.includes("DELETED") ||
     event === "PAYMENT_DELETED"
   ) {
-    return "bg-red-100 text-red-900";
+    return "neu-badge-danger";
   }
   if (
     event.includes("LOGIN") ||
     event === "PASSWORD_RESET_COMPLETED" ||
     event === "MEMBER_ADDED"
   ) {
-    return "bg-emerald-100 text-emerald-900";
+    return "neu-badge-success";
   }
   if (event.includes("RESET_REQUESTED") || event.includes("CODE")) {
-    return "bg-amber-100 text-amber-900";
+    return "neu-badge-warning";
   }
   if (event === "REPORT_GENERATED" || event === "PAYMENT_LOGGED") {
-    return "bg-sky-100 text-sky-900";
+    return "neu-badge-info";
   }
   if (event === "RATE_CHANGED" || event.includes("ADMIN_ACCOUNT")) {
-    return "bg-violet-100 text-violet-900";
+    return "neu-badge-neutral";
   }
   if (event === "DASHBOARD_ACCESS") {
-    return "bg-teal-100 text-teal-900";
+    return "neu-badge-success";
   }
-  return "bg-gray-100 text-gray-800";
+  return "neu-badge-neutral";
 }
 
 function formatDetails(event: string, meta: Record<string, unknown> | null) {
@@ -149,24 +149,26 @@ export function AuditClient({
   return (
     <div className="mx-auto max-w-6xl">
       <div>
-        <h1 className="font-serif text-2xl font-semibold text-[#1a1a2e]">
+        <h1 className="font-serif text-2xl font-bold" style={{ color: "var(--neu-text-primary)" }}>
           Audit Log
         </h1>
-        <p className="mt-1 text-sm text-[#1a1a2e]/70">
+        <p className="mt-1 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
           Last 6 months of system events
         </p>
       </div>
 
       <div className="mt-6 flex flex-col gap-4 lg:flex-row lg:items-end">
         <div className="flex-1">
-          <label className="text-xs font-medium text-[#1a1a2e]/60">Event type</label>
+          <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
+            Event type
+          </label>
           <select
             value={eventFilter}
             onChange={(e) => {
               setPage(0);
               setEventFilter(e.target.value);
             }}
-            className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 bg-white px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2 lg:max-w-md"
+            className="neu-input mt-1 cursor-pointer lg:max-w-md"
           >
             <option value="">All</option>
             {EVENT_TYPES.map((t) => (
@@ -177,7 +179,7 @@ export function AuditClient({
           </select>
         </div>
         <div className="flex-1">
-          <label className="text-xs font-medium text-[#1a1a2e]/60">
+          <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
             Search by IP
           </label>
           <input
@@ -187,15 +189,39 @@ export function AuditClient({
               setIpQuery(e.target.value);
             }}
             placeholder="e.g. 192.168."
-            className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2 lg:max-w-md"
+            className="neu-input mt-1 lg:max-w-md"
           />
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-[#1a1a2e]/10 bg-white shadow-sm">
+      <ul className="mt-6 space-y-3 lg:hidden">
+        {slice.map((log) => (
+          <li key={log.id} className="neu-card-sm">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <span className={`neu-badge ${eventBadgeClass(log.event_type)}`} style={{ fontSize: 10 }}>
+                {log.event_type}
+              </span>
+              <span className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                {formatTimestamp(log.created_at)}
+              </span>
+            </div>
+            <p className="mt-2 text-xs font-medium" style={{ color: "var(--neu-text-primary)" }}>
+              {actorLabel(log, adminEmails)}
+              {log.ip_address ? (
+                <span style={{ color: "var(--neu-text-secondary)" }}> · {log.ip_address}</span>
+              ) : null}
+            </p>
+            <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+              {formatDetails(log.event_type, log.metadata)}
+            </p>
+          </li>
+        ))}
+      </ul>
+
+      <div className="neu-card mt-6 hidden overflow-x-auto p-0 lg:block">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-[#1a1a2e]/10 bg-[#f8f7f4] text-xs font-semibold uppercase tracking-wide text-[#1a1a2e]/55">
-            <tr>
+          <thead className="neu-table-head text-xs font-semibold uppercase tracking-wide">
+            <tr style={{ color: "var(--neu-text-secondary)" }}>
               <th className="px-4 py-3">Timestamp</th>
               <th className="px-4 py-3">Event</th>
               <th className="px-4 py-3">Actor</th>
@@ -203,26 +229,33 @@ export function AuditClient({
               <th className="px-4 py-3">Details</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1a1a2e]/8">
+          <tbody>
             {slice.map((log) => (
-              <tr key={log.id} className="text-[#1a1a2e]/90">
-                <td className="whitespace-nowrap px-4 py-3 text-xs text-[#1a1a2e]/80">
+              <tr
+                key={log.id}
+                className="neu-table-row-hover transition"
+                style={{
+                  borderBottom: "1px solid color-mix(in srgb, var(--neu-shadow-dark) 15%, transparent)",
+                }}
+              >
+                <td className="whitespace-nowrap px-4 py-3 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                   {formatTimestamp(log.created_at)}
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${eventBadgeClass(log.event_type)}`}
-                  >
+                  <span className={`neu-badge ${eventBadgeClass(log.event_type)}`} style={{ fontSize: 10 }}>
                     {log.event_type}
                   </span>
                 </td>
-                <td className="max-w-[140px] truncate px-4 py-3 text-xs">
+                <td className="max-w-[140px] truncate px-4 py-3 text-xs" style={{ color: "var(--neu-text-primary)" }}>
                   {actorLabel(log, adminEmails)}
                 </td>
-                <td className="hidden whitespace-nowrap px-4 py-3 font-mono text-xs text-[#1a1a2e]/70 md:table-cell">
+                <td
+                  className="hidden whitespace-nowrap px-4 py-3 font-mono text-xs md:table-cell"
+                  style={{ color: "var(--neu-text-secondary)" }}
+                >
                   {log.ip_address ?? "—"}
                 </td>
-                <td className="max-w-md px-4 py-3 text-xs text-[#1a1a2e]/75">
+                <td className="max-w-md px-4 py-3 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
                   {formatDetails(log.event_type, log.metadata)}
                 </td>
               </tr>
@@ -232,13 +265,13 @@ export function AuditClient({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="mt-6 text-center text-sm text-[#1a1a2e]/55">
+        <p className="mt-6 text-center text-sm" style={{ color: "var(--neu-text-secondary)" }}>
           No entries match your filters.
         </p>
       ) : null}
 
       {filtered.length > pageSize ? (
-        <div className="mt-4 flex items-center justify-between text-sm text-[#1a1a2e]/70">
+        <div className="mt-4 flex items-center justify-between text-sm" style={{ color: "var(--neu-text-secondary)" }}>
           <span>
             Page {safePage + 1} of {pageCount} ({filtered.length} entries)
           </span>
@@ -247,7 +280,7 @@ export function AuditClient({
               type="button"
               disabled={safePage <= 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
-              className="flex min-h-[44px] items-center rounded-lg border border-[#1a1a2e]/15 px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+              className="neu-button min-h-[44px] px-3 py-1.5 text-xs disabled:opacity-40"
             >
               Previous
             </button>
@@ -255,7 +288,7 @@ export function AuditClient({
               type="button"
               disabled={safePage >= pageCount - 1}
               onClick={() => setPage((p) => p + 1)}
-              className="flex min-h-[44px] items-center rounded-lg border border-[#1a1a2e]/15 px-3 py-1.5 text-xs font-medium disabled:opacity-40"
+              className="neu-button min-h-[44px] px-3 py-1.5 text-xs disabled:opacity-40"
             >
               Next
             </button>

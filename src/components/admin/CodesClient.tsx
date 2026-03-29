@@ -125,10 +125,10 @@ export function CodesClient({
     <div className="mx-auto max-w-3xl">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-[#1a1a2e]">
+          <h1 className="font-serif text-2xl font-bold" style={{ color: "var(--neu-text-primary)" }}>
             Access Codes
           </h1>
-          <p className="mt-1 text-sm text-[#1a1a2e]/70">
+          <p className="mt-1 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
             Share these codes with family members to grant dashboard access
           </p>
         </div>
@@ -136,19 +136,18 @@ export function CodesClient({
           type="button"
           disabled={busyGen}
           onClick={() => void onGenerate()}
-          className="flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2.5 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] disabled:opacity-60 lg:w-auto"
+          className="neu-button-gold flex min-h-[44px] w-full shrink-0 items-center justify-center disabled:opacity-60 lg:w-auto"
         >
           {busyGen ? "Generating…" : "Generate New Code"}
         </button>
       </div>
 
-      <div
-        className="mt-6 rounded-xl border border-sky-200/80 bg-sky-50 px-4 py-3 text-sm text-[#1a1a2e]/85"
-        role="note"
-      >
-        Each code grants read-only access to the family dashboard. When a code is
-        deleted, a new one is automatically generated. Share different codes with
-        different groups to track access.
+      <div className="neu-card-sm mt-6 text-sm" role="note" style={{ boxShadow: "var(--neu-flat)" }}>
+        <p style={{ color: "var(--neu-text-primary)" }}>
+          Each code grants read-only access to the family dashboard. When a code is
+          deleted, a new one is automatically generated. Share different codes with
+          different groups to track access.
+        </p>
       </div>
 
       <ul className="mt-8 space-y-4">
@@ -158,16 +157,20 @@ export function CodesClient({
               ? `/?code=${encodeURIComponent(c.code)}`
               : `${accessBase}/?code=${encodeURIComponent(c.code)}`;
           return (
-            <li
-              key={c.id}
-              className="rounded-xl border border-[#1a1a2e]/10 bg-white p-5 shadow-sm"
-            >
+            <li key={c.id} className="neu-card">
               <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-mono text-lg font-semibold tracking-wide text-[#1a1a2e] sm:text-xl md:text-2xl">
+                  <p
+                    className="font-mono font-semibold"
+                    style={{
+                      fontSize: 20,
+                      letterSpacing: "0.15em",
+                      color: "var(--neu-navy)",
+                    }}
+                  >
                     {c.code}
                   </p>
-                  <label className="mt-2 block text-xs font-medium text-[#1a1a2e]/50">
+                  <label className="mt-2 block text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                     Label
                   </label>
                   <input
@@ -176,10 +179,10 @@ export function CodesClient({
                       setLabelDrafts((m) => ({ ...m, [c.id]: e.target.value }))
                     }
                     onBlur={() => void onSaveLabel(c.id, c.label ?? "")}
-                    className="mt-0.5 w-full max-w-md rounded-lg border border-[#1a1a2e]/12 bg-[#f8f7f4] px-2 py-1.5 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2"
+                    className="neu-input mt-0.5 w-full max-w-md"
                   />
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#1a1a2e]/60">
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-900">
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                    <span className="neu-badge neu-badge-success" style={{ fontSize: 10 }}>
                       Active
                     </span>
                     <span>Created {formatCreated(c.created_at)}</span>
@@ -189,7 +192,7 @@ export function CodesClient({
                   <button
                     type="button"
                     onClick={() => void copyToClipboard(c.code, "code", c.id)}
-                    className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-xs font-medium text-[#1a1a2e] hover:bg-[#f8f7f4] sm:w-auto"
+                    className="neu-button flex min-h-[40px] w-full items-center justify-center rounded-full px-3 py-2 text-xs sm:w-auto"
                   >
                     {copiedCodeId === c.id ? "Copied!" : "Copy code"}
                   </button>
@@ -197,23 +200,31 @@ export function CodesClient({
                     type="button"
                     disabled={busyId === c.id}
                     onClick={() => void onDelete(c.id)}
-                    className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50 sm:w-auto"
+                    className="neu-button-danger flex min-h-[40px] w-full items-center justify-center rounded-full px-3 py-2 text-xs disabled:opacity-50 sm:w-auto"
                   >
                     Delete
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-lg border border-[#1a1a2e]/8 bg-[#f8f7f4] px-3 py-2">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-[#1a1a2e]/45">
+              <div
+                className="neu-card-sm mt-4"
+                style={{ boxShadow: "var(--neu-pressed-sm)" }}
+              >
+                <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--neu-text-secondary)" }}>
                   Access URL
                 </p>
                 <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <code className="break-all text-xs text-[#1a1a2e]/80">{url}</code>
+                  <code
+                    className="break-all font-mono text-[11px]"
+                    style={{ color: "var(--neu-text-secondary)" }}
+                  >
+                    {url}
+                  </code>
                   <button
                     type="button"
                     onClick={() => void copyToClipboard(url, "url", c.id)}
-                    className="flex min-h-[44px] w-full shrink-0 items-center justify-center rounded border border-[#1a1a2e]/15 px-2 py-1 text-xs text-[#1a1a2e] hover:bg-white sm:w-auto"
+                    className="neu-button flex min-h-[40px] w-full shrink-0 items-center justify-center rounded-full px-3 py-1 text-xs sm:w-auto"
                   >
                     {copiedUrlId === c.id ? "Copied!" : "Copy URL"}
                   </button>
@@ -225,7 +236,7 @@ export function CodesClient({
       </ul>
 
       {initialCodes.length === 0 ? (
-        <p className="mt-8 text-center text-sm text-[#1a1a2e]/55">
+        <p className="mt-8 text-center text-sm" style={{ color: "var(--neu-text-secondary)" }}>
           No access codes yet. Generate one to get started.
         </p>
       ) : null}

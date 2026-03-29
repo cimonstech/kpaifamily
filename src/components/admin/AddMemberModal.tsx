@@ -128,45 +128,64 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
 
   return (
     <div
-      className="fixed inset-0 z-[160] flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
+      className="neu-modal-backdrop motion-safe:animate-kpai-fade-in"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-[#1a1a2e]/10 bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6"
+        className="neu-modal-sheet neu-modal-sheet--lg motion-safe:animate-kpai-scale-in max-h-[90vh]"
         role="dialog"
         aria-modal
         aria-labelledby="add-member-title"
         onClick={(ev) => ev.stopPropagation()}
       >
-        <h2
-          id="add-member-title"
-          className="font-serif text-lg font-semibold text-[#1a1a2e]"
-        >
-          Add member
-        </h2>
+        <div className="neu-modal-handle sm:hidden" aria-hidden />
+        <div className="flex items-start justify-between gap-3">
+          <h2
+            id="add-member-title"
+            className="font-serif text-lg font-bold"
+            style={{ color: "var(--neu-text-primary)" }}
+          >
+            Add member
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="neu-close-btn shrink-0"
+            aria-label="Close"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="text-xs font-medium text-[#1a1a2e]/60">
+            <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
               Full name
             </label>
             <input
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2"
+              className="neu-input mt-1"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-[#1a1a2e]/60">
+            <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
               Branch
             </label>
             <select
               value={branchSelect}
               onChange={(e) => setBranchSelect(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 bg-white px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2"
+              className="neu-input mt-1 cursor-pointer"
             >
               {BRANCH_OPTIONS.map((b) => (
                 <option key={b} value={b}>
@@ -180,38 +199,46 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
                 value={branchOther}
                 onChange={(e) => setBranchOther(e.target.value)}
                 placeholder="Branch name"
-                className="mt-2 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2"
+                className="neu-input mt-2"
               />
             ) : null}
           </div>
 
-          <fieldset className="rounded-lg border border-[#1a1a2e]/10 p-3">
-            <legend className="px-1 text-xs font-medium text-[#1a1a2e]/60">
+          <fieldset className="neu-card-sm border-0 space-y-2">
+            <legend className="px-1 text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
               Status
             </legend>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-[#1a1a2e]">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input
                 type="radio"
                 name="mstatus"
                 checked={active}
                 onChange={() => setActive(true)}
+                className="h-4 w-4 shrink-0"
+                style={{ accentColor: "var(--neu-gold)" }}
               />
-              Active
+              <span style={{ color: "var(--neu-text-primary)" }}>Active</span>
             </label>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-[#1a1a2e]">
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm">
               <input
                 type="radio"
                 name="mstatus"
                 checked={!active}
                 onChange={() => setActive(false)}
+                className="h-4 w-4 shrink-0"
+                style={{ accentColor: "var(--neu-gold)" }}
               />
-              Not yet contributing
+              <span style={{ color: "var(--neu-text-primary)" }}>Not yet contributing</span>
             </label>
           </fieldset>
 
           <div>
             <label
-              className={`text-xs font-medium ${active ? "text-[#1a1a2e]/60" : "text-[#1a1a2e]/35"}`}
+              className="text-xs font-medium"
+              style={{
+                color: active ? "var(--neu-text-secondary)" : "var(--neu-text-secondary)",
+                opacity: active ? 1 : 0.55,
+              }}
             >
               Contributing since
             </label>
@@ -220,12 +247,12 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               disabled={!active}
               value={startMonth}
               onChange={(e) => setStartMonth(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2 disabled:cursor-not-allowed disabled:bg-[#f8f7f4] disabled:text-[#1a1a2e]/40"
+              className="neu-input mt-1 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-[#1a1a2e]/60">
+            <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
               Monthly contribution (GHS)
             </label>
             <input
@@ -234,23 +261,26 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               step="0.01"
               value={monthlyRate}
               onChange={(e) => setMonthlyRate(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-[#1a1a2e]/15 px-3 py-2 text-sm text-[#1a1a2e] outline-none ring-[#e8b84b]/30 focus:ring-2"
+              className="neu-input mt-1"
             />
           </div>
 
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-[#1a1a2e]">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={anonymous}
               onChange={(e) => setAnonymous(e.target.checked)}
+              className="neu-checkbox"
             />
-            List as anonymous on public dashboard
+            <span style={{ color: "var(--neu-text-primary)" }}>
+              List as anonymous on public dashboard
+            </span>
           </label>
 
           {error ? (
-            <p className="text-sm text-red-600" role="alert">
+            <div className="neu-error-box text-sm" role="alert">
               {error}
-            </p>
+            </div>
           ) : null}
 
           <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
@@ -258,14 +288,14 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-[#1a1a2e]/15 px-4 py-2 text-sm text-[#1a1a2e]/70 hover:bg-[#f8f7f4] sm:w-auto"
+              className="neu-button min-h-[44px] w-full sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[#e8b84b] px-4 py-2 text-sm font-semibold text-[#1a1a2e] shadow hover:bg-[#f0c35c] disabled:opacity-60 sm:w-auto"
+              className="neu-button-gold min-h-[44px] w-full sm:w-auto"
             >
               {loading ? "Saving…" : "Add member"}
             </button>
