@@ -21,11 +21,29 @@ const monda = Monda({
   display: "swap",
 });
 
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+/** Absolute site URL for metadata; avoids build/runtime errors when env is missing or malformed. */
+function getMetadataBase(): URL {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ?? "";
+  if (raw) {
+    try {
+      return new URL(raw.includes("://") ? raw : `https://${raw}`);
+    } catch {
+      /* use fallbacks below */
+    }
+  }
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) {
+    try {
+      return new URL(`https://${vercel}`);
+    } catch {
+      /* fall through */
+    }
+  }
+  return new URL("http://localhost:3000");
+}
 
 export const metadata: Metadata = {
-  metadataBase: new URL(appUrl),
+  metadataBase: getMetadataBase(),
   title: {
     template: "%s | Kpai Family Contributions",
     default: "Kpai Family Contributions",
