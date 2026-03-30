@@ -3,6 +3,10 @@
 import { APP_NAME } from "@/lib/constants";
 import type { Payment } from "@/lib/types";
 import { formatGhsCurrency } from "@/lib/utils/currency";
+import {
+  getMemberPaymentSubtitle,
+  memberPaymentProgressPercent,
+} from "@/lib/utils/member-payment-subtitle";
 import { useMemo, useState } from "react";
 
 export type DashboardMemberRow = {
@@ -325,12 +329,15 @@ export function DashboardMemberList({
 
           <ul className="space-y-3">
             {filtered.map((row) => {
-              const pct =
-                row.expectedTotal > 0
-                  ? Math.min(100, (row.totalPaid / row.expectedTotal) * 100)
-                  : row.totalPaid > 0
-                    ? 100
-                    : 0;
+              const pct = memberPaymentProgressPercent(
+                row.totalPaid,
+                row.expectedTotal
+              );
+              const sub = getMemberPaymentSubtitle(
+                row.totalPaid,
+                row.balance,
+                row.status
+              );
               return (
                 <li key={row.id}>
                   <button
@@ -358,8 +365,8 @@ export function DashboardMemberList({
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <p className="mt-2 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
-                        {formatCedis(row.totalPaid)} paid · {formatCedis(row.expectedTotal)} expected
+                      <p className="mt-2 text-xs" style={{ color: sub.colorVar }}>
+                        {sub.text}
                       </p>
                     </div>
                   </button>

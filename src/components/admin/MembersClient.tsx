@@ -2,6 +2,10 @@
 
 import { AddMemberModal } from "@/components/admin/AddMemberModal";
 import { formatGhsCurrency } from "@/lib/utils/currency";
+import {
+  getMemberPaymentSubtitle,
+  memberPaymentProgressPercent,
+} from "@/lib/utils/member-payment-subtitle";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -217,7 +221,14 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
       </div>
 
       <ul className="mt-8 space-y-3 lg:hidden">
-        {filtered.map((m) => (
+        {filtered.map((m) => {
+          const pct = memberPaymentProgressPercent(m.totalPaid, m.expectedTotal);
+          const sub = getMemberPaymentSubtitle(
+            m.totalPaid,
+            m.balance,
+            m.status
+          );
+          return (
           <li key={m.id}>
             <div
               role="button"
@@ -241,6 +252,15 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                     {m.branch}
                   </p>
                 ) : null}
+                <div className="neu-progress-track mt-2 h-2 w-full">
+                  <div
+                    className="neu-progress-fill transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs" style={{ color: sub.colorVar }}>
+                  {sub.text}
+                </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {statusBadge(m)}
                   {rateBadge(m)}
@@ -259,7 +279,8 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
               </Link>
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
       {filtered.length === 0 ? (
         <p
@@ -283,7 +304,14 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((m) => (
+            {filtered.map((m) => {
+              const pct = memberPaymentProgressPercent(m.totalPaid, m.expectedTotal);
+              const sub = getMemberPaymentSubtitle(
+                m.totalPaid,
+                m.balance,
+                m.status
+              );
+              return (
               <tr
                 key={m.id}
                 className="neu-table-row-hover cursor-pointer transition"
@@ -293,13 +321,26 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                 onClick={() => router.push(`/admin/members/${m.id}`)}
               >
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="neu-avatar h-10 w-10 shrink-0 text-xs">
-                      {initials(m.name)}
+                  <div className="flex max-w-xs flex-col gap-2 sm:max-w-md">
+                    <div className="flex items-center gap-3">
+                      <div className="neu-avatar h-10 w-10 shrink-0 text-xs">
+                        {initials(m.name)}
+                      </div>
+                      <span className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                        {m.name}
+                      </span>
                     </div>
-                    <span className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
-                      {m.name}
-                    </span>
+                    <div className="min-w-0 pl-[52px]">
+                      <div className="neu-progress-track h-2 w-full max-w-[220px]">
+                        <div
+                          className="neu-progress-fill transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-xs" style={{ color: sub.colorVar }}>
+                        {sub.text}
+                      </p>
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
@@ -321,7 +362,8 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                   </Link>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         {filtered.length === 0 ? (

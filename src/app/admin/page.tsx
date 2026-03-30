@@ -6,6 +6,7 @@ import { formatGhsCurrency } from "@/lib/utils/currency";
 export const metadata: Metadata = {
   title: "Home | Admin",
 };
+import { getMemberPaymentSubtitle } from "@/lib/utils/member-payment-subtitle";
 import { calculateBalance } from "@/lib/utils/rate-calculator";
 import type { Member, MemberRate, Payment } from "@/lib/types";
 
@@ -148,7 +149,8 @@ export default async function AdminHomePage() {
     activeMembers.length - paidUpThisMonthCount
   );
 
-  const behindRows: { id: string; name: string; owed: number }[] = [];
+  const behindRows: { id: string; name: string; owed: number; totalPaid: number }[] =
+    [];
   let totalOutstanding = 0;
 
   for (const m of activeMembers) {
@@ -163,7 +165,12 @@ export default async function AdminHomePage() {
       m.credit_balance
     );
     if (balance > 0.01) {
-      behindRows.push({ id: m.id, name: m.name, owed: balance });
+      behindRows.push({
+        id: m.id,
+        name: m.name,
+        owed: balance,
+        totalPaid: totalPair,
+      });
       totalOutstanding += balance;
     }
   }
@@ -309,27 +316,41 @@ export default async function AdminHomePage() {
                 Everyone is caught up.
               </li>
             ) : (
-              quickBehind.map((r, idx) => (
+              quickBehind.map((r, idx) => {
+                const sub = getMemberPaymentSubtitle(
+                  r.totalPaid,
+                  r.owed,
+                  "behind"
+                );
+                return (
                 <li key={r.id}>
                   {idx > 0 ? <div className="neu-divider" style={{ margin: "0" }} /> : null}
-                  <div className="flex items-center justify-between gap-2 py-4 text-sm">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="neu-avatar flex h-6 w-6 shrink-0 text-[11px]"
-                        style={{ boxShadow: "var(--neu-flat)" }}
-                      >
-                        {idx + 1}
+                  <div className="flex items-start justify-between gap-2 py-4 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="neu-avatar flex h-6 w-6 shrink-0 text-[11px]"
+                          style={{ boxShadow: "var(--neu-flat)" }}
+                        >
+                          {idx + 1}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                            {r.name}
+                          </span>
+                          <p className="mt-0.5 text-xs" style={{ color: sub.colorVar }}>
+                            {sub.text}
+                          </p>
+                        </div>
                       </div>
-                      <span className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
-                        {r.name}
-                      </span>
                     </div>
-                    <span className="font-bold" style={{ color: "#c53030" }}>
+                    <span className="shrink-0 font-bold" style={{ color: "#c53030" }}>
                       {formatCedis(r.owed)}
                     </span>
                   </div>
                 </li>
-              ))
+                );
+              })
             )}
           </ul>
         </section>
