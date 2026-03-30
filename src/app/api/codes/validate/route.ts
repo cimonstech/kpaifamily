@@ -1,4 +1,3 @@
-import { createHmac } from "crypto";
 import { NextResponse } from "next/server";
 import { logEvent } from "@/lib/db/audit";
 import { rateLimit } from "@/lib/security/rate-limiter";
@@ -11,23 +10,6 @@ function getClientIp(request: Request): string | null {
     if (first) return first;
   }
   return request.headers.get("x-real-ip");
-}
-
-function signViewerCookie(code: string): string {
-  const secret = process.env.JWT_SECRET ?? "fallback";
-  const sig = createHmac("sha256", secret).update(code).digest("hex").slice(0, 16);
-  return `${code}.${sig}`;
-}
-
-export function verifyViewerCookie(value: string): string | null {
-  const dot = value.lastIndexOf(".");
-  if (dot === -1) return null;
-  const code = value.slice(0, dot);
-  const sig = value.slice(dot + 1);
-  const secret = process.env.JWT_SECRET ?? "fallback";
-  const expected = createHmac("sha256", secret).update(code).digest("hex").slice(0, 16);
-  if (sig !== expected) return null;
-  return code;
 }
 
 export async function POST(request: Request) {
@@ -83,9 +65,8 @@ export async function POST(request: Request) {
     metadata: { code_label: accessCode.label },
   });
 
-  const signed = signViewerCookie(accessCode.code);
   const res = NextResponse.json({ success: true });
-  res.cookies.set("viewer_session", signed, {
+  res.cookies.set("viewer_session", accessCode.code, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
