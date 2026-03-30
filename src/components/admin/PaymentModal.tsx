@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ModalPortal } from "@/components/admin/ModalPortal";
 import { useToast } from "@/components/admin/Toast";
 import { formatGhsCurrency } from "@/lib/utils/currency";
 
@@ -119,13 +120,14 @@ export function PaymentModal({
   }
 
   return (
+    <ModalPortal>
     <div
-      className="neu-modal-backdrop motion-safe:animate-kpai-fade-in"
+      className="admin-modal-overlay motion-safe:animate-kpai-fade-in"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="neu-modal-sheet motion-safe:animate-kpai-scale-in"
+        className="admin-modal-card motion-safe:animate-kpai-scale-in"
         role="dialog"
         aria-modal
         aria-labelledby="payment-modal-title"
@@ -257,5 +259,6 @@ export function PaymentModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

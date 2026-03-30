@@ -1,5 +1,6 @@
 "use client";
 
+import { ModalPortal } from "@/components/admin/ModalPortal";
 import { useToast } from "@/components/admin/Toast";
 import { useEffect, useState } from "react";
 
@@ -78,13 +79,14 @@ export function ChangeRateModal({
   }
 
   return (
+    <ModalPortal>
     <div
-      className="neu-modal-backdrop motion-safe:animate-kpai-fade-in"
+      className="admin-modal-overlay motion-safe:animate-kpai-fade-in"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="neu-modal-sheet motion-safe:animate-kpai-scale-in max-h-[90vh]"
+        className="admin-modal-card motion-safe:animate-kpai-scale-in"
         role="dialog"
         aria-modal
         aria-labelledby="change-rate-title"
@@ -184,5 +186,6 @@ export function ChangeRateModal({
         </form>
       </div>
     </div>
+    </ModalPortal>
   );
 }

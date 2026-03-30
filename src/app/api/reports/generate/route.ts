@@ -6,8 +6,12 @@ import {
   normalizeReportWhatsAppOptions,
 } from "@/lib/utils/report-formatter";
 import { generatePDF } from "@/lib/utils/pdf-generator";
-import { uploadPDF } from "@/lib/r2";
-import { calculateBalance, getMemberRateForMonth } from "@/lib/utils/rate-calculator";
+import { isR2Configured, uploadPDF } from "@/lib/r2";
+import {
+  calculateBalance,
+  calculateExpectedTotal,
+  getMemberRateForMonth,
+} from "@/lib/utils/rate-calculator";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberRate, Payment, ReportData } from "@/lib/types";
 
@@ -105,36 +109,56 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid month (use YYYY-MM)" }, { status: 400 });
   }
 
-  const monthDate = new Date(`${ym}-01T12:00:00`);
+  const firstDayOfMonth = new Date(`${ym}-01T12:00:00`);
+  const monthDate = firstDayOfMonth;
   const monthFirst = `${ym}-01`;
-  const rangeStart = monthFirst;
   const rangeEnd = lastDayOfMonthYm(ym);
 
   const supabase = await createSupabaseServerClient();
 
-  const [
-    { data: rawMembers },
-    { data: rawRates },
-    { data: rawPayments },
-    { data: checklistRows },
-  ] = await Promise.all([
-    supabase.from("members").select("*").eq("active", true),
-    supabase.from("member_rates").select("*"),
-    supabase.from("payments").select("*"),
-    supabase
-      .from("monthly_checklist")
-      .select("member_id, paid")
-      .eq("month", ym),
-  ]);
+  const [{ data: rawMembers }, { data: rawRates }, { data: rawPayments }] =
+    await Promise.all([
+      supabase.from("members").select("*").eq("active", true),
+      supabase.from("member_rates").select("*"),
+      supabase.from("payments").select("*"),
+    ]);
 
   const members = (rawMembers ?? []) as Record<string, unknown>[];
   const memberIds = members.map((m) => String(m.id));
+  const memberIdSet = new Set(memberIds);
 
-  const paidThisMonthMap = new Map<string, boolean>();
-  for (const row of checklistRows ?? []) {
-    const r = row as { member_id: string; paid: boolean | null };
-    paidThisMonthMap.set(r.member_id, r.paid === true);
+  const [{ data: checklistForMonth }, { data: monthPaymentsRaw }] =
+    await Promise.all([
+      supabase
+        .from("monthly_checklist")
+        .select("member_id, paid, payment_id")
+        .eq("month", monthFirst)
+        .eq("paid", true),
+      supabase
+        .from("payments")
+        .select("member_id, amount")
+        .gte("date_paid", monthFirst)
+        .lte("date_paid", rangeEnd),
+    ]);
+
+  const paidMemberIds = new Set(
+    (checklistForMonth ?? []).map((c) =>
+      String((c as { member_id: string }).member_id)
+    )
+  );
+
+  const paymentAmountMap = new Map<string, number>();
+  for (const row of monthPaymentsRaw ?? []) {
+    const p = row as { member_id: string; amount: number };
+    if (!memberIdSet.has(p.member_id)) continue;
+    const existing = paymentAmountMap.get(p.member_id) ?? 0;
+    paymentAmountMap.set(p.member_id, existing + Number(p.amount));
   }
+
+  const totalCollectedThisMonth = Array.from(paymentAmountMap.values()).reduce(
+    (s, v) => s + v,
+    0
+  );
 
   const ratesByMember = new Map<string, MemberRate[]>();
   for (const row of rawRates ?? []) {
@@ -165,33 +189,78 @@ export async function POST(request: Request) {
 
   const totalCollectedAllTime = allPayments.reduce((s, p) => s + p.amount, 0);
 
-  const paymentsInMonth = allPayments.filter((p) => {
-    const d = p.date_paid.slice(0, 10);
-    return d >= rangeStart && d <= rangeEnd;
-  });
-  const totalCollectedThisMonth = paymentsInMonth.reduce((s, p) => s + p.amount, 0);
+  type ActiveMember = {
+    id: string;
+    name: string;
+    anonymous: boolean;
+    credit_balance: number;
+    start_date: string;
+  };
+
+  const activeMembers: ActiveMember[] = members.map((raw) => ({
+    id: String(raw.id),
+    name: String(raw.name),
+    anonymous: Boolean(raw.anonymous),
+    credit_balance: Number(raw.credit_balance ?? 0),
+    start_date: raw.start_date == null ? "" : String(raw.start_date),
+  }));
+
+  const totalPaidMap = new Map<string, number>();
+  for (const id of memberIds) {
+    const pays = paymentsByMember.get(id) ?? [];
+    totalPaidMap.set(
+      id,
+      pays.reduce((s, p) => s + p.amount, 0)
+    );
+  }
+
+  const paidMembersWhatsapp = activeMembers
+    .filter((m) => paidMemberIds.has(m.id))
+    .map((m) => ({
+      name: m.name,
+      anonymous: m.anonymous,
+      amountPaidThisMonth: paymentAmountMap.get(m.id) ?? 0,
+    }))
+    .sort((a, b) =>
+      (a.anonymous ? "Anonymous" : a.name).localeCompare(
+        b.anonymous ? "Anonymous" : b.name,
+        undefined,
+        { sensitivity: "base" }
+      )
+    );
+
+  const unpaidMembersWhatsapp = activeMembers
+    .filter((m) => !paidMemberIds.has(m.id))
+    .map((m) => {
+      const memberRateHistory = ratesByMember.get(m.id) ?? [];
+      const currentRate = getMemberRateForMonth(memberRateHistory, new Date());
+      const totalPaidForMember = totalPaidMap.get(m.id) ?? 0;
+      let balance = 0;
+      let monthsBehind = 0;
+      if (m.start_date) {
+        const sd = new Date(m.start_date);
+        const expectedTotal = calculateExpectedTotal(memberRateHistory, sd);
+        balance =
+          expectedTotal - totalPaidForMember - (m.credit_balance || 0);
+        monthsBehind =
+          currentRate > 0.01
+            ? Math.max(0, Math.round(balance / currentRate))
+            : 0;
+      }
+      return {
+        name: m.name,
+        anonymous: m.anonymous,
+        amountBehind: balance,
+        monthsBehind,
+      };
+    })
+    .filter((m) => m.amountBehind > 0.01)
+    .sort((a, b) => b.amountBehind - a.amountBehind);
 
   type Row = ReportData["members"][number] & { name: string; memberId: string };
 
   const pdfAndRows: Row[] = [];
   let totalOutstanding = 0;
-
-  const paidMembersWhatsapp: Array<{
-    name: string;
-    anonymous: boolean;
-    amountThisMonth: number;
-  }> = [];
-  const unpaidMembersWhatsapp: Array<{
-    name: string;
-    anonymous: boolean;
-    amountBehind: number;
-    monthsBehind: number;
-  }> = [];
-  const aheadMembersWhatsapp: Array<{
-    name: string;
-    anonymous: boolean;
-    amountAhead: number;
-  }> = [];
 
   for (const raw of members) {
     const id = String(raw.id);
@@ -212,13 +281,8 @@ export async function POST(request: Request) {
 
     if (balance > 0.01) totalOutstanding += balance;
 
-    const paidThisMonth = paidThisMonthMap.get(id) === true;
-    const amountPaidThisMonth = pays
-      .filter((p) => {
-        const d = p.date_paid.slice(0, 10);
-        return d >= rangeStart && d <= rangeEnd;
-      })
-      .reduce((s, p) => s + p.amount, 0);
+    const paidThisMonth = paidMemberIds.has(id);
+    const amountPaidThisMonth = paymentAmountMap.get(id) ?? 0;
 
     let status = "Paid up";
     if (!start_date) status = "Pending";
@@ -241,43 +305,29 @@ export async function POST(request: Request) {
       status,
       name,
     });
-
-    if (paidThisMonth) {
-      paidMembersWhatsapp.push({
-        name,
-        anonymous,
-        amountThisMonth: amountPaidThisMonth,
-      });
-    } else if (balance > 0.01) {
-      const monthlyRate = getMemberRateForMonth(rates, monthDate);
-      const monthsBehind =
-        monthlyRate > 0.01
-          ? Math.max(1, Math.ceil(balance / monthlyRate - 1e-9))
-          : 1;
-      unpaidMembersWhatsapp.push({
-        name,
-        anonymous,
-        amountBehind: balance,
-        monthsBehind,
-      });
-    } else if (balance < -0.01) {
-      aheadMembersWhatsapp.push({
-        name,
-        anonymous,
-        amountAhead: -balance,
-      });
-    }
   }
 
+  console.log("Report data:", {
+    paidCount: paidMembersWhatsapp.length,
+    unpaidCount: unpaidMembersWhatsapp.length,
+    totalCollectedThisMonth,
+    totalOutstanding,
+    month: firstDayOfMonth,
+  });
+
   const whatsappText = formatWhatsAppReport({
-    month: monthDate,
+    month: firstDayOfMonth,
+    options: {
+      includePaidMembers: reportOptions.includePaidMembers,
+      includeUnpaidMembers: reportOptions.includeUnpaidMembers,
+      includeOutstanding: reportOptions.includeOutstanding,
+      unpaidFilter: reportOptions.unpaidFilter,
+    },
+    paidMembers: paidMembersWhatsapp,
+    unpaidMembers: unpaidMembersWhatsapp,
     totalCollectedThisMonth,
     totalCollectedAllTime,
     totalOutstanding,
-    paidMembers: paidMembersWhatsapp,
-    unpaidMembers: unpaidMembersWhatsapp,
-    aheadMembers: aheadMembersWhatsapp,
-    options: reportOptions,
   });
 
   const monthlyTrend = buildMonthlyTrendFromPayments(allPayments, monthDate);
@@ -309,16 +359,29 @@ export async function POST(request: Request) {
     members: pdfAndRows.map(({ name: _n, memberId: _m, ...rest }) => rest),
   };
 
-  const pdfBytes = await generatePDF(reportData);
-
-  let publicUrl: string;
+  let pdfBytes: Uint8Array;
   try {
-    publicUrl = await uploadPDF(`report-${ym}.pdf`, pdfBytes);
+    pdfBytes = await generatePDF(reportData);
   } catch (e) {
-    console.error("R2 upload", e);
-    return NextResponse.json(
-      { error: "Could not upload PDF. Check R2 configuration." },
-      { status: 500 }
+    console.error("generatePDF", e);
+    const message = e instanceof Error ? e.message : "PDF generation failed";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+
+  let publicUrl: string | null = null;
+  if (isR2Configured()) {
+    try {
+      publicUrl = await uploadPDF(`report-${ym}.pdf`, pdfBytes);
+    } catch (e) {
+      console.error("R2 upload", e);
+      return NextResponse.json(
+        { error: "Could not upload PDF. Check R2 configuration and credentials." },
+        { status: 500 }
+      );
+    }
+  } else {
+    console.warn(
+      "reports/generate: R2 not configured; skipping PDF upload (text summary and DB row still saved)"
     );
   }
 

@@ -15,27 +15,6 @@ function getClientIp(request: Request): string | null {
   return request.headers.get("x-real-ip");
 }
 
-function startOfMonth(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function formatYm(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function listMonthKeysFromStart(startDateStr: string, through: Date): string[] {
-  const start = startOfMonth(new Date(startDateStr));
-  const end = startOfMonth(through);
-  if (start > end) return [];
-  const out: string[] = [];
-  const c = new Date(start);
-  while (c <= end) {
-    out.push(formatYm(c));
-    c.setMonth(c.getMonth() + 1);
-  }
-  return out;
-}
-
 function toMemberRate(r: Record<string, unknown>): MemberRate {
   return {
     id: String(r.id),
@@ -119,29 +98,6 @@ export async function POST(request: Request) {
     existingCredit: creditBalance,
   });
 
-  const { data: checklistRows } = await supabase
-    .from("monthly_checklist")
-    .select("month, paid")
-    .eq("member_id", memberId);
-
-  const paidByMonth = new Map<string, boolean>();
-  for (const row of checklistRows ?? []) {
-    const rec = row as { month: string; paid: boolean | null };
-    paidByMonth.set(rec.month, rec.paid === true);
-  }
-
-  const monthKeys = listMonthKeysFromStart(
-    String((rawMember as { start_date: string }).start_date),
-    today
-  );
-  const monthsToMark: string[] = [];
-  for (const ym of monthKeys) {
-    if (monthsToMark.length >= alloc.monthsCovered) break;
-    if (paidByMonth.get(ym) !== true) {
-      monthsToMark.push(ym);
-    }
-  }
-
   const { data: inserted, error: payErr } = await supabase
     .from("payments")
     .insert({
@@ -175,26 +131,54 @@ export async function POST(request: Request) {
     console.error("member credit update", memErr);
   }
 
-  for (const ym of monthsToMark) {
-    const { data: existing } = await supabase
-      .from("monthly_checklist")
-      .select("id")
-      .eq("member_id", memberId)
-      .eq("month", ym)
-      .maybeSingle();
+  const memberStartDate = (rawMember as { start_date: string | null })
+    .start_date;
+  if (memberStartDate) {
+    const startDate = new Date(memberStartDate);
+    const endMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const allMonths: string[] = [];
+    const cursor = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      1
+    );
+    while (cursor <= endMonth) {
+      allMonths.push(
+        `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-01`
+      );
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
 
-    if (existing && (existing as { id: string }).id) {
-      await supabase
-        .from("monthly_checklist")
-        .update({ paid: true, payment_id: paymentId })
-        .eq("id", (existing as { id: string }).id);
-    } else {
-      await supabase.from("monthly_checklist").insert({
-        member_id: memberId,
-        month: ym,
-        paid: true,
-        payment_id: paymentId,
-      });
+    const { data: paidMonths } = await supabase
+      .from("monthly_checklist")
+      .select("month")
+      .eq("member_id", memberId)
+      .eq("paid", true);
+
+    const paidSet = new Set(
+      (paidMonths ?? []).map((p) => {
+        const row = p as { month: string };
+        const d = new Date(row.month);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+      })
+    );
+
+    const unpaidMonths = allMonths.filter((m) => !paidSet.has(m));
+    const monthsToMark = unpaidMonths.slice(
+      0,
+      Math.max(1, alloc.monthsCovered)
+    );
+
+    for (const monthStr of monthsToMark) {
+      await supabase.from("monthly_checklist").upsert(
+        {
+          member_id: memberId,
+          month: monthStr,
+          paid: true,
+          payment_id: paymentId,
+        },
+        { onConflict: "member_id,month" }
+      );
     }
   }
 

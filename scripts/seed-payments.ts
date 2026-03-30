@@ -108,24 +108,54 @@ async function insertPayment(
     return
   }
 
-  const monthsToMark = Math.max(1, monthsCovered)
-  for (let i = 0; i < monthsToMark; i++) {
-    const targetMonth = new Date(monthDate)
-    targetMonth.setMonth(targetMonth.getMonth() + i)
-    const targetMonthStr =
-      targetMonth.toISOString().slice(0, 7) + '-01'
+  const monthsCoveredCount = Math.max(1, monthsCovered)
 
-    await supabase
+  if (member.start_date) {
+    const startDate = new Date(member.start_date)
+    const today = new Date()
+    const allMonths: string[] = []
+
+    const cursor = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      1
+    )
+    const endMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+
+    while (cursor <= endMonth) {
+      allMonths.push(
+        `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-01`
+      )
+      cursor.setMonth(cursor.getMonth() + 1)
+    }
+
+    const { data: paidMonths } = await supabase
       .from('monthly_checklist')
-      .upsert(
+      .select('month')
+      .eq('member_id', member.id)
+      .eq('paid', true)
+
+    const paidSet = new Set(
+      (paidMonths || []).map((p) => {
+        const d = new Date((p as { month: string }).month)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+      })
+    )
+
+    const unpaidMonths = allMonths.filter((m) => !paidSet.has(m))
+    const monthsToMark = unpaidMonths.slice(0, monthsCoveredCount)
+
+    for (const monthStr of monthsToMark) {
+      await supabase.from('monthly_checklist').upsert(
         {
           member_id: member.id,
-          month: targetMonthStr,
+          month: monthStr,
           paid: true,
-          payment_id: payment.id
+          payment_id: payment.id,
         },
         { onConflict: 'member_id,month' }
       )
+    }
   }
 
   member.credit_balance = creditRemainder

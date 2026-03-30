@@ -1,13 +1,3 @@
-import { formatGhsCurrency } from "@/lib/utils/currency";
-
-function displayName(entry: { name: string; anonymous: boolean }): string {
-  return entry.anonymous ? "Anonymous" : entry.name;
-}
-
-function monthHeading(month: Date): string {
-  return month.toLocaleString("en-GH", { month: "long", year: "numeric" });
-}
-
 export type UnpaidFilter =
   | "all"
   | "moreThan1Month"
@@ -15,22 +5,16 @@ export type UnpaidFilter =
   | "countOnly";
 
 export type ReportWhatsAppOptions = {
-  includeCollectedThisMonth: boolean;
-  includeOutstanding: boolean;
   includePaidMembers: boolean;
   includeUnpaidMembers: boolean;
-  includeAheadMembers: boolean;
-  includeTotalAllTime: boolean;
+  includeOutstanding: boolean;
   unpaidFilter: UnpaidFilter;
 };
 
 export const DEFAULT_REPORT_WHATSAPP_OPTIONS: ReportWhatsAppOptions = {
-  includeCollectedThisMonth: true,
-  includeOutstanding: true,
   includePaidMembers: true,
-  includeUnpaidMembers: true,
-  includeAheadMembers: false,
-  includeTotalAllTime: false,
+  includeUnpaidMembers: false,
+  includeOutstanding: false,
   unpaidFilter: "all",
 };
 
@@ -51,174 +35,112 @@ export function normalizeReportWhatsAppOptions(
   const bool = (k: keyof ReportWhatsAppOptions, def: boolean) =>
     typeof o[k] === "boolean" ? (o[k] as boolean) : def;
   return {
-    includeCollectedThisMonth: bool(
-      "includeCollectedThisMonth",
-      d.includeCollectedThisMonth
-    ),
-    includeOutstanding: bool("includeOutstanding", d.includeOutstanding),
     includePaidMembers: bool("includePaidMembers", d.includePaidMembers),
     includeUnpaidMembers: bool("includeUnpaidMembers", d.includeUnpaidMembers),
-    includeAheadMembers: bool("includeAheadMembers", d.includeAheadMembers),
-    includeTotalAllTime: bool("includeTotalAllTime", d.includeTotalAllTime),
+    includeOutstanding: bool("includeOutstanding", d.includeOutstanding),
     unpaidFilter,
   };
 }
 
-type PaidMemberRow = {
-  name: string;
-  anonymous: boolean;
-  amountThisMonth: number;
-};
+function displayName(entry: { name: string; anonymous: boolean }): string {
+  return entry.anonymous ? "Anonymous" : entry.name;
+}
 
-type UnpaidMemberRow = {
-  name: string;
-  anonymous: boolean;
-  amountBehind: number;
-  monthsBehind: number;
-};
-
-type AheadMemberRow = {
-  name: string;
-  anonymous: boolean;
-  amountAhead: number;
-};
+/** Plain amount for list lines / monthly total: no "GHS", integers when whole. */
+function formatPlainAmount(n: number): string {
+  const x = Math.round(n * 100) / 100;
+  if (Math.abs(x - Math.round(x)) < 0.001) {
+    return String(Math.round(x));
+  }
+  return x.toLocaleString("en-GH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
 
 export function formatWhatsAppReport(params: {
   month: Date;
+  options: {
+    includePaidMembers: boolean;
+    includeUnpaidMembers: boolean;
+    includeOutstanding: boolean;
+    unpaidFilter: UnpaidFilter;
+  };
+  paidMembers: Array<{
+    name: string;
+    anonymous: boolean;
+    amountPaidThisMonth: number;
+  }>;
+  unpaidMembers: Array<{
+    name: string;
+    anonymous: boolean;
+    amountBehind: number;
+    monthsBehind: number;
+  }>;
   totalCollectedThisMonth: number;
   totalCollectedAllTime: number;
   totalOutstanding: number;
-  paidMembers: PaidMemberRow[];
-  unpaidMembers: UnpaidMemberRow[];
-  aheadMembers: AheadMemberRow[];
-  options: ReportWhatsAppOptions;
 }): string {
-  const {
-    month,
-    totalCollectedThisMonth,
-    totalCollectedAllTime,
-    totalOutstanding,
-    paidMembers,
-    unpaidMembers,
-    aheadMembers,
-    options,
-  } = params;
+  console.log("formatWhatsAppReport called with:", {
+    paidCount: params.paidMembers.length,
+    unpaidCount: params.unpaidMembers.length,
+    options: params.options,
+  });
 
-  const lines: string[] = [];
+  const monthName = params.month
+    .toLocaleDateString("en-GH", { month: "long", year: "numeric" })
+    .toUpperCase();
 
-  lines.push("🌟 *Kpai Family Contributions*");
-  lines.push(`📅 *${monthHeading(month)} Report*`);
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━");
+  let text = `${monthName} CONTRIBUTION\n\n`;
 
-  if (options.includeCollectedThisMonth) {
-    lines.push("");
-    lines.push(
-      `💰 *This Month:* ${formatGhsCurrency(totalCollectedThisMonth)} collected`
-    );
+  if (params.options.includePaidMembers && params.paidMembers.length > 0) {
+    params.paidMembers.forEach((m, i) => {
+      const name = displayName(m);
+      text += `${i + 1}. ${name} - ${formatPlainAmount(m.amountPaidThisMonth)}\n`;
+    });
+    text += `\nTotal - ${formatPlainAmount(params.totalCollectedThisMonth)}\n`;
   }
 
-  if (options.includeOutstanding) {
-    lines.push("");
-    lines.push(`📊 *Outstanding Balance:* ${formatGhsCurrency(totalOutstanding)}`);
-  }
-
-  if (options.includeTotalAllTime) {
-    lines.push("");
-    lines.push(
-      `🏦 *Total Collected (All Time):* ${formatGhsCurrency(totalCollectedAllTime)}`
-    );
-  }
-
-  lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━");
-
-  const byName = <T extends { name: string; anonymous: boolean }>(a: T, b: T) =>
-    displayName(a).localeCompare(displayName(b), undefined, { sensitivity: "base" });
-
-  if (options.includePaidMembers && paidMembers.length > 0) {
-    const sortedPaid = [...paidMembers].sort(byName);
-    lines.push("");
-    lines.push(`✅ *Paid this month (${sortedPaid.length}):*`);
-    for (const m of sortedPaid) {
-      lines.push(
-        `✔ ${displayName(m)} — ${formatGhsCurrency(m.amountThisMonth)}`
-      );
-    }
-  }
-
-  if (options.includeUnpaidMembers) {
-    const filterUnpaid = (): UnpaidMemberRow[] => {
-      switch (options.unpaidFilter) {
-        case "moreThan1Month":
-          return unpaidMembers.filter((m) => m.monthsBehind > 1);
-        case "moreThan3Months":
-          return unpaidMembers.filter((m) => m.monthsBehind > 3);
-        case "countOnly":
-        case "all":
-        default:
-          return unpaidMembers;
+  if (params.options.includeUnpaidMembers) {
+    if (params.options.unpaidFilter === "countOnly") {
+      if (
+        params.options.includePaidMembers &&
+        params.paidMembers.length > 0
+      ) {
+        text += "\n";
       }
-    };
-
-    const filtered = filterUnpaid().sort(byName);
-    const count =
-      options.unpaidFilter === "countOnly"
-        ? unpaidMembers.length
-        : filtered.length;
-
-    if (unpaidMembers.length === 0) {
-      // no section
-    } else if (options.unpaidFilter === "countOnly") {
-      lines.push("");
-      lines.push(
-        `⚠️ *${count} member(s) are yet to pay this month.*`
-      );
-      lines.push("Please make your contribution. Thank you! 🙏");
-    } else if (options.unpaidFilter === "all") {
-      lines.push("");
-      lines.push(`❌ *Yet to pay this month (${filtered.length}):*`);
-      for (const m of filtered) {
-        lines.push(
-          `• ${displayName(m)} (${m.monthsBehind} month${m.monthsBehind === 1 ? "" : "s"} behind)`
-        );
+      text += `${params.unpaidMembers.length} member(s) are yet to pay.\n`;
+    } else {
+      let filtered = params.unpaidMembers;
+      if (params.options.unpaidFilter === "moreThan1Month") {
+        filtered = params.unpaidMembers.filter((m) => m.monthsBehind > 1);
+      } else if (params.options.unpaidFilter === "moreThan3Months") {
+        filtered = params.unpaidMembers.filter((m) => m.monthsBehind > 3);
       }
-    } else if (options.unpaidFilter === "moreThan1Month") {
-      lines.push("");
-      lines.push(`⚠️ *Behind by more than 1 month (${filtered.length}):*`);
-      for (const m of filtered) {
-        lines.push(
-          `• ${displayName(m)} (${m.monthsBehind} months behind)`
-        );
-      }
-    } else if (options.unpaidFilter === "moreThan3Months") {
-      lines.push("");
-      lines.push(
-        `🚨 *Significantly behind — over 3 months (${filtered.length}):*`
-      );
-      for (const m of filtered) {
-        lines.push(
-          `• ${displayName(m)} (${m.monthsBehind} months behind)`
-        );
+
+      if (filtered.length > 0) {
+        if (
+          params.options.includePaidMembers &&
+          params.paidMembers.length > 0
+        ) {
+          text += "\n";
+        }
+
+        text += `Yet to pay (${filtered.length}):\n`;
+        filtered.forEach((m, i) => {
+          const name = displayName(m);
+          const behindNote =
+            m.monthsBehind > 1 ? ` (${m.monthsBehind} months behind)` : "";
+          text += `${i + 1}. ${name}${behindNote}\n`;
+        });
       }
     }
   }
 
-  if (options.includeAheadMembers && aheadMembers.length > 0) {
-    const sortedAhead = [...aheadMembers].sort(byName);
-    lines.push("");
-    lines.push(`🌟 *Ahead of schedule (${sortedAhead.length}):*`);
-    for (const m of sortedAhead) {
-      lines.push(
-        `• ${displayName(m)} — ${formatGhsCurrency(m.amountAhead)} ahead`
-      );
-    }
+  if (params.options.includeOutstanding) {
+    text += `\nTotal outstanding - GHS ${params.totalOutstanding.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+    text += `Total collected (all time) - GHS ${params.totalCollectedAllTime.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
   }
 
-  lines.push("");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━");
-  lines.push("_Thank you all for your continued support._");
-  lines.push("_Together we are stronger! 💛_");
-  lines.push("_— Kpai Family Admin_");
-
-  return lines.join("\n");
+  return text.trim();
 }

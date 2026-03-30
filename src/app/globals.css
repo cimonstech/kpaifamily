@@ -321,6 +321,25 @@
   color: var(--neu-text-secondary);
 }
 
+.metric-value {
+  font-size: 24px;
+}
+
+@media (max-width: 640px) {
+  .neu-metric .value {
+    font-size: 17px;
+  }
+  .neu-metric .label {
+    font-size: 9px;
+  }
+  .neu-metric .sub {
+    font-size: 9px;
+  }
+  .metric-value {
+    font-size: 17px;
+  }
+}
+
 .neu-avatar {
   border-radius: 50%;
   box-shadow: var(--neu-raised);
@@ -398,6 +417,53 @@
   padding: 2rem;
   max-width: 400px;
   width: 100%;
+}
+
+/* Admin app modals: viewport-fixed overlay + card (above bottom nav z-index 50) */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.admin-modal-card {
+  position: relative;
+  z-index: 10000;
+  max-width: 480px;
+  width: calc(100% - 40px);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 20px;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-raised-lg);
+  padding: 1.5rem;
+}
+
+.admin-modal-card--lg {
+  max-width: 32rem;
+}
+
+@media (max-width: 639.98px) {
+  .admin-modal-card {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    width: 100%;
+    max-width: none;
+    border-radius: 24px 24px 0 0;
+    max-height: 90vh;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .admin-modal-card--lg {
+    max-width: none;
+  }
 }
 
 .neu-modal-backdrop {

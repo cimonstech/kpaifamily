@@ -1,5 +1,6 @@
 "use client";
 
+import { ModalPortal } from "@/components/admin/ModalPortal";
 import { useToast } from "@/components/admin/Toast";
 import {
   DEFAULT_REPORT_WHATSAPP_OPTIONS,
@@ -94,10 +95,10 @@ export function GenerateReportModal({
   }
 
   const unpaidFilters: { id: UnpaidFilter; label: string }[] = [
-    { id: "all", label: "All members who haven't paid this month" },
-    { id: "moreThan1Month", label: "Only members behind by more than 1 month" },
-    { id: "moreThan3Months", label: "Only members behind by more than 3 months" },
-    { id: "countOnly", label: "Don't include individual names (count only)" },
+    { id: "all", label: "All members who haven't paid" },
+    { id: "moreThan1Month", label: "Behind by more than 1 month" },
+    { id: "moreThan3Months", label: "Behind by more than 3 months" },
+    { id: "countOnly", label: "Count only (don't list names)" },
   ];
 
   const toggleRow = (
@@ -121,13 +122,14 @@ export function GenerateReportModal({
   );
 
   return (
+    <ModalPortal>
     <div
-      className="neu-modal-backdrop motion-safe:animate-kpai-fade-in"
+      className="admin-modal-overlay motion-safe:animate-kpai-fade-in"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="neu-modal-sheet neu-modal-sheet--lg motion-safe:animate-kpai-scale-in max-h-[92vh]"
+        className="admin-modal-card admin-modal-card--lg motion-safe:animate-kpai-scale-in"
         role="dialog"
         aria-modal
         aria-labelledby="gen-report-title"
@@ -183,18 +185,6 @@ export function GenerateReportModal({
               </p>
               <div className="mt-3 space-y-2">
                 {toggleRow(
-                  "includeCollectedThisMonth",
-                  "Total collected this month",
-                  options.includeCollectedThisMonth,
-                  (v) => setBool("includeCollectedThisMonth", v)
-                )}
-                {toggleRow(
-                  "includeOutstanding",
-                  "Total outstanding (all time)",
-                  options.includeOutstanding,
-                  (v) => setBool("includeOutstanding", v)
-                )}
-                {toggleRow(
                   "includePaidMembers",
                   "Members who paid this month",
                   options.includePaidMembers,
@@ -207,16 +197,10 @@ export function GenerateReportModal({
                   (v) => setBool("includeUnpaidMembers", v)
                 )}
                 {toggleRow(
-                  "includeAheadMembers",
-                  "Members ahead of schedule",
-                  options.includeAheadMembers,
-                  (v) => setBool("includeAheadMembers", v)
-                )}
-                {toggleRow(
-                  "includeTotalAllTime",
-                  "Total collected all time",
-                  options.includeTotalAllTime,
-                  (v) => setBool("includeTotalAllTime", v)
+                  "includeOutstanding",
+                  "Total outstanding and all-time collected",
+                  options.includeOutstanding,
+                  (v) => setBool("includeOutstanding", v)
                 )}
               </div>
             </div>
@@ -291,14 +275,24 @@ export function GenerateReportModal({
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <a
-                href={pdfUrl ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="neu-button-gold flex min-h-[44px] w-full items-center justify-center rounded-full text-center text-sm sm:flex-1"
-              >
-                Download PDF
-              </a>
+              {pdfUrl ? (
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="neu-button-gold flex min-h-[44px] w-full items-center justify-center rounded-full text-center text-sm sm:flex-1"
+                >
+                  Download PDF
+                </a>
+              ) : (
+                <p
+                  className="neu-card-sm flex min-h-[44px] w-full items-center justify-center rounded-full px-3 text-center text-sm sm:flex-1"
+                  style={{ color: "var(--neu-text-secondary)" }}
+                >
+                  No PDF link — R2 is not configured on this server. The WhatsApp
+                  text was saved; configure R2 for a hosted download link.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => void copyText()}
@@ -353,5 +347,6 @@ export function GenerateReportModal({
         )}
       </div>
     </div>
+    </ModalPortal>
   );
 }

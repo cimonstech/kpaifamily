@@ -382,7 +382,7 @@ function drawMonthlyTrendChart(
 function truncateLabel(s: string, maxLen: number) {
   const t = s.trim();
   if (t.length <= maxLen) return t;
-  return `${t.slice(0, maxLen - 1)}…`;
+  return `${t.slice(0, maxLen - 1)}...`;
 }
 
 function drawTopBehindChart(
@@ -522,7 +522,7 @@ export async function generatePDF(reportData: ReportData): Promise<Uint8Array> {
 
   text("KPAI FAMILY CONTRIBUTIONS", { bold: true, size: 18 });
   line(4);
-  text(`Monthly Report — ${monthTitle(reportData.month)}`, { size: 13 });
+  text(`Monthly Report - ${monthTitle(reportData.month)}`, { size: 13 });
   text(
     `Generated: ${reportData.generatedAt.toLocaleString("en-GB", {
       dateStyle: "medium",
@@ -547,12 +547,12 @@ export async function generatePDF(reportData: ReportData): Promise<Uint8Array> {
   text("Name | Amount Paid | Status", { bold: true, size: 9, color: GRAY });
   for (const m of paidList) {
     text(
-      `✓ ${m.displayName}  |  ${formatCedis(m.amountPaidThisMonth)}  |  ${m.status}`,
+      `* ${m.displayName}  |  ${formatCedis(m.amountPaidThisMonth)}  |  ${m.status}`,
       { size: 10 }
     );
   }
   if (paidList.length === 0) {
-    text("— None —", { size: 10, color: GRAY });
+    text("- None -", { size: 10, color: GRAY });
   }
   line(12);
   hr();
@@ -575,7 +575,7 @@ export async function generatePDF(reportData: ReportData): Promise<Uint8Array> {
     );
   }
   if (unpaid.length === 0) {
-    text("— None in this category —", { size: 10, color: GRAY });
+    text("- None in this category -", { size: 10, color: GRAY });
   }
 
   line(24);
@@ -594,7 +594,7 @@ export async function generatePDF(reportData: ReportData): Promise<Uint8Array> {
   const chartYTop = 750;
 
   const chartPage1 = doc.addPage([A4_W, A4_H]);
-  chartPage1.drawText("Kpai Family Contributions — Visual Summary", {
+  chartPage1.drawText("Kpai Family Contributions - Visual Summary", {
     x: MARGIN,
     y: 800,
     size: 13,
@@ -641,7 +641,7 @@ export async function generatePDF(reportData: ReportData): Promise<Uint8Array> {
   addChartFooter(chartPage1, font);
 
   const chartPage2 = doc.addPage([A4_W, A4_H]);
-  chartPage2.drawText("Kpai Family Contributions — Visual Summary", {
+  chartPage2.drawText("Kpai Family Contributions - Visual Summary", {
     x: MARGIN,
     y: 800,
     size: 13,

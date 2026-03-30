@@ -126,6 +126,7 @@ export function ChecklistClient({
   }
 
   return (
+    <>
     <div className="mx-auto max-w-4xl pb-8">
       <div className="flex flex-col gap-4 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
@@ -310,18 +311,20 @@ export function ChecklistClient({
         ) : null}
       </section>
 
-      {modalMember ? (
-        <PaymentModal
-          open={!!modalMember}
-          onClose={() => setModalMember(null)}
-          memberId={modalMember.id}
-          memberName={modalMember.name}
-          monthlyRate={modalMember.monthlyRate}
-          creditBalance={modalMember.credit_balance}
-          unpaidMonthKeysOrdered={modalMember.unpaidMonthKeysOrdered}
-          onRecorded={() => router.refresh()}
-        />
-      ) : null}
     </div>
+
+    {modalMember ? (
+      <PaymentModal
+        open={!!modalMember}
+        onClose={() => setModalMember(null)}
+        memberId={modalMember.id}
+        memberName={modalMember.name}
+        monthlyRate={modalMember.monthlyRate}
+        creditBalance={modalMember.credit_balance}
+        unpaidMonthKeysOrdered={modalMember.unpaidMonthKeysOrdered}
+        onRecorded={() => router.refresh()}
+      />
+    ) : null}
+    </>
   );
 }

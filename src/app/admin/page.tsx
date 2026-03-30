@@ -207,7 +207,7 @@ export default async function AdminHomePage() {
             ◎
           </div>
           <span className="label">Total collected</span>
-          <span className="value">{formatCedis(totalCollected)}</span>
+          <span className="value metric-value">{formatCedis(totalCollected)}</span>
           <span className="sub">All time</span>
         </div>
         <div className="neu-metric relative overflow-hidden">
@@ -218,7 +218,7 @@ export default async function AdminHomePage() {
             ◇
           </div>
           <span className="label">Outstanding</span>
-          <span className="value">{formatCedis(totalOutstanding)}</span>
+          <span className="value metric-value">{formatCedis(totalOutstanding)}</span>
         </div>
         <div className="neu-metric relative overflow-hidden">
           <div
@@ -228,7 +228,7 @@ export default async function AdminHomePage() {
             ✓
           </div>
           <span className="label">Paid this month</span>
-          <span className="value">{formatCedis(paidThisMonth)}</span>
+          <span className="value metric-value">{formatCedis(paidThisMonth)}</span>
         </div>
         <div className="neu-metric relative overflow-hidden">
           <div
@@ -238,7 +238,7 @@ export default async function AdminHomePage() {
             !
           </div>
           <span className="label">Not yet paid</span>
-          <span className="value">{notYetPaidThisMonth}</span>
+          <span className="value metric-value">{notYetPaidThisMonth}</span>
           <span className="sub">Active members</span>
         </div>
       </div>
