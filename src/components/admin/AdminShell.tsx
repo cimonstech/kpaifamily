@@ -110,6 +110,22 @@ function IconKey({ className }: { className?: string }) {
   );
 }
 
+function IconReceipt({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z" />
+      <path d="M9 7h6M9 11h6M9 15h4" />
+    </svg>
+  );
+}
+
 function IconShield({ className }: { className?: string }) {
   return (
     <svg
@@ -270,6 +286,11 @@ export function AdminShell({
           icon={<IconDoc className="h-[18px] w-[18px]" />}
         />
         <DesktopNavLink
+          href="/admin/expenses"
+          label="Expenses"
+          icon={<IconReceipt className="h-[18px] w-[18px]" />}
+        />
+        <DesktopNavLink
           href="/admin/codes"
           label="Access Codes"
           icon={<IconKey className="h-[18px] w-[18px]" />}
@@ -333,7 +354,7 @@ export function AdminShell({
     { href: `/admin/checklist/${ym}`, label: "Checklist", Icon: IconClipboard },
     { href: "/admin/members", label: "Members", Icon: IconUsers },
     { href: "/admin/reports", label: "Reports", Icon: IconDoc },
-    { href: "/admin/codes", label: "Codes", Icon: IconKey },
+    { href: "/admin/expenses", label: "Expenses", Icon: IconReceipt },
   ] as const;
 
   type MobileNavEntry = (typeof mobileNavEntries)[number];
@@ -426,6 +447,11 @@ export function AdminShell({
               href="/admin/reports"
               label="Reports"
               icon={<IconDoc className="h-[18px] w-[18px]" />}
+            />
+            <OverlayNavLink
+              href="/admin/expenses"
+              label="Expenses"
+              icon={<IconReceipt className="h-[18px] w-[18px]" />}
             />
             <OverlayNavLink
               href="/admin/codes"

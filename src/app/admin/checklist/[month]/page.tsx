@@ -76,6 +76,7 @@ function toPayment(p: Record<string, unknown>): Payment {
     months_covered: Number(p.months_covered ?? 0),
     credit_used: Number(p.credit_used ?? 0),
     credit_remainder: Number(p.credit_remainder ?? 0),
+    single_month_only: Boolean(p.single_month_only),
     note: p.note == null ? null : String(p.note),
     created_at: String(p.created_at ?? ""),
   };
@@ -224,6 +225,7 @@ export default async function ChecklistMonthPage({
           id: p.id,
           amount: p.amount,
           date_paid: p.date_paid,
+          single_month_only: p.single_month_only,
           note: p.note,
         };
       }

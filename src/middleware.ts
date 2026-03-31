@@ -63,9 +63,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith("/expenses")) {
+    const viewerSession = request.cookies.get("viewer_session")?.value;
+    if (!viewerSession) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard", "/dashboard/:path*"],
+  matcher: ["/admin/:path*", "/dashboard", "/dashboard/:path*", "/expenses", "/expenses/:path*"],
 };

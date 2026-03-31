@@ -6,6 +6,10 @@ import { getMemberRateForMonth } from "@/lib/utils/rate-calculator";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberRate } from "@/lib/types";
 
+// NOTE: Run this SQL if not already done:
+// ALTER TABLE payments ADD COLUMN single_month_only
+// boolean NOT NULL DEFAULT false;
+
 function getClientIp(request: Request): string | null {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
@@ -37,6 +41,7 @@ export async function POST(request: Request) {
     amount?: number;
     datePaid?: string;
     note?: string;
+    single_month_only?: boolean;
   };
   try {
     body = await request.json();
@@ -55,6 +60,7 @@ export async function POST(request: Request) {
   }
 
   const numAmount = Number(amount);
+  const singleMonthOnly = body.single_month_only === true;
   if (numAmount <= 0) {
     return NextResponse.json({ error: "Amount must be greater than 0" }, { status: 400 });
   }
@@ -89,14 +95,24 @@ export async function POST(request: Request) {
     toMemberRate(row as Record<string, unknown>)
   );
 
+  const paidAt = new Date(datePaid);
+  if (Number.isNaN(paidAt.getTime())) {
+    return NextResponse.json({ error: "Invalid datePaid" }, { status: 400 });
+  }
   const today = new Date();
   const memberRate = getMemberRateForMonth(rates, today);
 
-  const alloc = allocatePayment({
-    amount: numAmount,
-    memberRate,
-    existingCredit: creditBalance,
-  });
+  const alloc = singleMonthOnly
+    ? {
+        monthsCovered: 1,
+        creditUsed: 0,
+        creditRemainder: 0,
+      }
+    : allocatePayment({
+        amount: numAmount,
+        memberRate,
+        existingCredit: creditBalance,
+      });
 
   const { data: inserted, error: payErr } = await supabase
     .from("payments")
@@ -107,6 +123,7 @@ export async function POST(request: Request) {
       months_covered: alloc.monthsCovered,
       credit_used: alloc.creditUsed,
       credit_remainder: alloc.creditRemainder,
+      single_month_only: singleMonthOnly,
       note: body.note?.trim() || null,
     })
     .select()
@@ -122,18 +139,32 @@ export async function POST(request: Request) {
 
   const paymentId = String((inserted as { id: string }).id);
 
-  const { error: memErr } = await supabase
-    .from("members")
-    .update({ credit_balance: alloc.creditRemainder })
-    .eq("id", memberId);
+  if (!singleMonthOnly) {
+    const { error: memErr } = await supabase
+      .from("members")
+      .update({ credit_balance: alloc.creditRemainder })
+      .eq("id", memberId);
 
-  if (memErr) {
-    console.error("member credit update", memErr);
+    if (memErr) {
+      console.error("member credit update", memErr);
+    }
   }
 
-  const memberStartDate = (rawMember as { start_date: string | null })
-    .start_date;
-  if (memberStartDate) {
+  if (singleMonthOnly) {
+    const checklistMonth = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, "0")}-01`;
+    await supabase.from("monthly_checklist").upsert(
+      {
+        member_id: memberId,
+        month: checklistMonth,
+        paid: true,
+        payment_id: paymentId,
+      },
+      { onConflict: "member_id,month" }
+    );
+  } else {
+    const memberStartDate = (rawMember as { start_date: string | null })
+      .start_date;
+    if (memberStartDate) {
     const startDate = new Date(memberStartDate);
     const endMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const allMonths: string[] = [];
@@ -180,6 +211,7 @@ export async function POST(request: Request) {
         { onConflict: "member_id,month" }
       );
     }
+    }
   }
 
   const ip = getClientIp(request);
@@ -193,6 +225,7 @@ export async function POST(request: Request) {
       memberId,
       amount: numAmount,
       monthsCovered: alloc.monthsCovered,
+      singleMonthOnly,
     },
   });
 

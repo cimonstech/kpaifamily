@@ -44,15 +44,10 @@ function toPayment(p: Record<string, unknown>): Payment {
     months_covered: Number(p.months_covered ?? 0),
     credit_used: Number(p.credit_used ?? 0),
     credit_remainder: Number(p.credit_remainder ?? 0),
+    single_month_only: Boolean(p.single_month_only),
     note: p.note == null ? null : String(p.note),
     created_at: String(p.created_at ?? ""),
   };
-}
-
-function lastDayOfMonthYm(ym: string): string {
-  const [y, mo] = ym.split("-").map(Number);
-  const last = new Date(y, mo, 0);
-  return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
 }
 
 function trendMonthLabel(d: Date): string {
@@ -104,42 +99,48 @@ export async function POST(request: Request) {
 
   const reportOptions = normalizeReportWhatsAppOptions(body.options);
 
-  const ym = body.month?.trim();
-  if (!ym || !/^\d{4}-\d{2}$/.test(ym)) {
+  const monthStr = body.month?.trim();
+  if (!monthStr || !/^\d{4}-\d{2}$/.test(monthStr)) {
     return NextResponse.json({ error: "Invalid month (use YYYY-MM)" }, { status: 400 });
   }
 
-  const firstDayOfMonth = new Date(`${ym}-01T12:00:00`);
+  const firstDayOfMonth = new Date(`${monthStr}-01`);
+  firstDayOfMonth.setUTCHours(0, 0, 0, 0);
+  const ym = monthStr;
   const monthDate = firstDayOfMonth;
-  const monthFirst = `${ym}-01`;
-  const rangeEnd = lastDayOfMonthYm(ym);
+  const monthFirst = firstDayOfMonth.toISOString().slice(0, 10);
+  const lastDayOfMonth = new Date(
+    firstDayOfMonth.getUTCFullYear(),
+    firstDayOfMonth.getUTCMonth() + 1,
+    0
+  );
+  lastDayOfMonth.setUTCHours(0, 0, 0, 0);
 
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: rawMembers }, { data: rawRates }, { data: rawPayments }] =
+  const [
+    { data: rawMembers },
+    { data: allMemberRatesRaw },
+    { data: rawPayments },
+    { data: checklistForMonth },
+  ] =
     await Promise.all([
       supabase.from("members").select("*").eq("active", true),
-      supabase.from("member_rates").select("*"),
+      supabase
+        .from("member_rates")
+        .select("*")
+        .order("effective_from", { ascending: true }),
       supabase.from("payments").select("*"),
+      supabase
+        .from("monthly_checklist")
+        .select("member_id, paid")
+        .eq("month", monthFirst)
+        .eq("paid", true),
     ]);
 
   const members = (rawMembers ?? []) as Record<string, unknown>[];
   const memberIds = members.map((m) => String(m.id));
   const memberIdSet = new Set(memberIds);
-
-  const [{ data: checklistForMonth }, { data: monthPaymentsRaw }] =
-    await Promise.all([
-      supabase
-        .from("monthly_checklist")
-        .select("member_id, paid, payment_id")
-        .eq("month", monthFirst)
-        .eq("paid", true),
-      supabase
-        .from("payments")
-        .select("member_id, amount")
-        .gte("date_paid", monthFirst)
-        .lte("date_paid", rangeEnd),
-    ]);
 
   const paidMemberIds = new Set(
     (checklistForMonth ?? []).map((c) =>
@@ -147,47 +148,39 @@ export async function POST(request: Request) {
     )
   );
 
-  const paymentAmountMap = new Map<string, number>();
-  for (const row of monthPaymentsRaw ?? []) {
-    const p = row as { member_id: string; amount: number };
-    if (!memberIdSet.has(p.member_id)) continue;
-    const existing = paymentAmountMap.get(p.member_id) ?? 0;
-    paymentAmountMap.set(p.member_id, existing + Number(p.amount));
+  const { data: singleMonthPayments } = await supabase
+    .from("payments")
+    .select("member_id, amount")
+    .eq("single_month_only", true)
+    .gte("date_paid", firstDayOfMonth.toISOString().slice(0, 10))
+    .lte("date_paid", lastDayOfMonth.toISOString().slice(0, 10));
+
+  const singleMonthPaymentMap = new Map<string, number>();
+  for (const p of singleMonthPayments ?? []) {
+    const row = p as { member_id: string; amount: number };
+    const existing = singleMonthPaymentMap.get(row.member_id) ?? 0;
+    singleMonthPaymentMap.set(row.member_id, existing + Number(row.amount));
   }
 
-  const totalCollectedThisMonth = Array.from(paymentAmountMap.values()).reduce(
-    (s, v) => s + v,
-    0
-  );
-
-  const ratesByMember = new Map<string, MemberRate[]>();
-  for (const row of rawRates ?? []) {
+  const memberRatesMap = new Map<string, MemberRate[]>();
+  for (const row of allMemberRatesRaw ?? []) {
     const mr = toMemberRate(row as Record<string, unknown>);
-    if (!memberIds.includes(mr.member_id)) continue;
-    const list = ratesByMember.get(mr.member_id) ?? [];
+    if (!memberIdSet.has(mr.member_id)) continue;
+    const list = memberRatesMap.get(mr.member_id) ?? [];
     list.push(mr);
-    ratesByMember.set(mr.member_id, list);
-  }
-  for (const [, list] of ratesByMember) {
-    list.sort(
-      (a, b) =>
-        new Date(a.effective_from).getTime() -
-        new Date(b.effective_from).getTime()
-    );
+    memberRatesMap.set(mr.member_id, list);
   }
 
   const paymentsByMember = new Map<string, Payment[]>();
   const allPayments: Payment[] = [];
   for (const row of rawPayments ?? []) {
     const p = toPayment(row as Record<string, unknown>);
-    if (!memberIds.includes(p.member_id)) continue;
+    if (!memberIdSet.has(p.member_id)) continue;
     allPayments.push(p);
     const list = paymentsByMember.get(p.member_id) ?? [];
     list.push(p);
     paymentsByMember.set(p.member_id, list);
   }
-
-  const totalCollectedAllTime = allPayments.reduce((s, p) => s + p.amount, 0);
 
   type ActiveMember = {
     id: string;
@@ -206,21 +199,27 @@ export async function POST(request: Request) {
   }));
 
   const totalPaidMap = new Map<string, number>();
-  for (const id of memberIds) {
-    const pays = paymentsByMember.get(id) ?? [];
-    totalPaidMap.set(
-      id,
-      pays.reduce((s, p) => s + p.amount, 0)
-    );
+  for (const p of allPayments) {
+    const existing = totalPaidMap.get(p.member_id) ?? 0;
+    totalPaidMap.set(p.member_id, existing + Number(p.amount));
   }
 
   const paidMembersWhatsapp = activeMembers
     .filter((m) => paidMemberIds.has(m.id))
-    .map((m) => ({
-      name: m.name,
-      anonymous: m.anonymous,
-      amountPaidThisMonth: paymentAmountMap.get(m.id) ?? 0,
-    }))
+    .map((m) => {
+      const rateForMonth = getMemberRateForMonth(
+        memberRatesMap.get(m.id) ?? [],
+        firstDayOfMonth
+      );
+      const amountToShow = singleMonthPaymentMap.has(m.id)
+        ? (singleMonthPaymentMap.get(m.id) ?? 0)
+        : rateForMonth;
+      return {
+        name: m.name,
+        anonymous: m.anonymous,
+        amountPaidThisMonth: amountToShow,
+      };
+    })
     .sort((a, b) =>
       (a.anonymous ? "Anonymous" : a.name).localeCompare(
         b.anonymous ? "Anonymous" : b.name,
@@ -229,28 +228,36 @@ export async function POST(request: Request) {
       )
     );
 
+  const totalCollectedThisMonth = paidMembersWhatsapp.reduce(
+    (sum, m) => sum + m.amountPaidThisMonth,
+    0
+  );
+
+  const totalCollectedAllTime = Array.from(totalPaidMap.values()).reduce(
+    (s, v) => s + v,
+    0
+  );
+
   const unpaidMembersWhatsapp = activeMembers
-    .filter((m) => !paidMemberIds.has(m.id))
+    .filter((m) => {
+      if (paidMemberIds.has(m.id)) return false;
+      if (!m.start_date) return false;
+      const startDate = new Date(m.start_date);
+      return startDate <= firstDayOfMonth;
+    })
     .map((m) => {
-      const memberRateHistory = ratesByMember.get(m.id) ?? [];
+      const memberRateHistory = memberRatesMap.get(m.id) ?? [];
       const currentRate = getMemberRateForMonth(memberRateHistory, new Date());
       const totalPaidForMember = totalPaidMap.get(m.id) ?? 0;
-      let balance = 0;
-      let monthsBehind = 0;
-      if (m.start_date) {
-        const sd = new Date(m.start_date);
-        const expectedTotal = calculateExpectedTotal(memberRateHistory, sd);
-        balance =
-          expectedTotal - totalPaidForMember - (m.credit_balance || 0);
-        monthsBehind =
-          currentRate > 0.01
-            ? Math.max(0, Math.round(balance / currentRate))
-            : 0;
-      }
+      const sd = new Date(m.start_date);
+      const expectedTotal = calculateExpectedTotal(memberRateHistory, sd);
+      const balance = expectedTotal - totalPaidForMember - (m.credit_balance || 0);
+      const monthsBehind =
+        currentRate > 0.01 ? Math.max(0, Math.round(balance / currentRate)) : 0;
       return {
         name: m.name,
         anonymous: m.anonymous,
-        amountBehind: balance,
+        amountBehind: Math.max(0, balance),
         monthsBehind,
       };
     })
@@ -259,8 +266,16 @@ export async function POST(request: Request) {
 
   type Row = ReportData["members"][number] & { name: string; memberId: string };
 
+  const totalOutstanding = activeMembers.reduce((sum, m) => {
+    const memberRateHistory = memberRatesMap.get(m.id) ?? [];
+    if (!m.start_date) return sum;
+    const expectedTotal = calculateExpectedTotal(memberRateHistory, new Date(m.start_date));
+    const totalPaid = totalPaidMap.get(m.id) ?? 0;
+    const balance = expectedTotal - totalPaid - (m.credit_balance || 0);
+    return sum + Math.max(0, balance);
+  }, 0);
+
   const pdfAndRows: Row[] = [];
-  let totalOutstanding = 0;
 
   for (const raw of members) {
     const id = String(raw.id);
@@ -269,9 +284,8 @@ export async function POST(request: Request) {
     const anonymous = Boolean(raw.anonymous);
     const credit_balance = Number(raw.credit_balance ?? 0);
     const start_date = raw.start_date == null ? "" : String(raw.start_date);
-    const rates = ratesByMember.get(id) ?? [];
-    const pays = paymentsByMember.get(id) ?? [];
-    const totalPaid = pays.reduce((s, p) => s + p.amount, 0);
+    const rates = memberRatesMap.get(id) ?? [];
+    const totalPaid = totalPaidMap.get(id) ?? 0;
 
     let balance = 0;
     if (start_date) {
@@ -279,10 +293,12 @@ export async function POST(request: Request) {
       balance = calculateBalance(rates, sd, totalPaid, credit_balance);
     }
 
-    if (balance > 0.01) totalOutstanding += balance;
-
     const paidThisMonth = paidMemberIds.has(id);
-    const amountPaidThisMonth = paymentAmountMap.get(id) ?? 0;
+    const amountPaidThisMonth = paidThisMonth
+      ? (singleMonthPaymentMap.has(id)
+        ? (singleMonthPaymentMap.get(id) ?? 0)
+        : getMemberRateForMonth(rates, firstDayOfMonth))
+      : 0;
 
     let status = "Paid up";
     if (!start_date) status = "Pending";
@@ -337,7 +353,7 @@ export async function POST(request: Request) {
     .sort((a, b) => b.balance - a.balance)
     .slice(0, 10)
     .map((r) => {
-      const rates = ratesByMember.get(r.memberId) ?? [];
+      const rates = memberRatesMap.get(r.memberId) ?? [];
       const rate = getMemberRateForMonth(rates, monthDate);
       const monthsBehind =
         rate > 0.01 ? Math.max(1, Math.round(r.balance / rate)) : 1;

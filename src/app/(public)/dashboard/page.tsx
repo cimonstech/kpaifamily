@@ -34,6 +34,7 @@ function toPayment(p: Record<string, unknown>): Payment {
     months_covered: Number(p.months_covered ?? 0),
     credit_used: Number(p.credit_used ?? 0),
     credit_remainder: Number(p.credit_remainder ?? 0),
+    single_month_only: Boolean(p.single_month_only),
     note: p.note == null ? null : String(p.note),
     created_at: String(p.created_at ?? ""),
   };
@@ -67,11 +68,13 @@ export default async function DashboardPage() {
     { data: rawRates },
     { data: rawPayments },
     { data: globalRateRows },
+    { data: expensesData },
   ] = await Promise.all([
     supabase.from("members").select("*"),
     supabase.from("member_rates").select("*"),
     supabase.from("payments").select("*"),
     supabase.from("global_rate_history").select("rate, effective_from, created_at"),
+    supabase.from("expenses").select("total_amount"),
   ]);
 
   const globalPicked = pickCurrentGlobalRateFromRows(globalRateRows, today);
@@ -136,7 +139,7 @@ export default async function DashboardPage() {
     };
   });
 
-  const totalCollected = (rawPayments ?? []).reduce(
+  const grossCollected = (rawPayments ?? []).reduce(
     (s, p) => s + Number((p as { amount?: number }).amount ?? 0),
     0
   );
@@ -148,6 +151,12 @@ export default async function DashboardPage() {
   );
   const membersPaidUp = activeRows.filter((r) => r.status === "ok").length;
   const membersBehind = activeRows.filter((r) => r.status === "behind").length;
+  const totalExpenses = (expensesData ?? []).reduce(
+    (s, e) => s + Number((e as { total_amount?: number }).total_amount ?? 0),
+    0
+  );
+  const totalCollected = grossCollected - totalExpenses;
+  const expenseCount = (expensesData ?? []).length;
 
   const headerDate = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -168,6 +177,8 @@ export default async function DashboardPage() {
           totalOutstanding,
           membersPaidUp,
           membersBehind,
+          totalExpenses,
+          expenseCount,
         }}
       />
       <PWAInstallPrompt startUrl="/" />

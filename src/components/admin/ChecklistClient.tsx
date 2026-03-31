@@ -20,6 +20,7 @@ export type ChecklistMemberVM = {
     id: string;
     amount: number;
     date_paid: string;
+    single_month_only: boolean;
     note: string | null;
   } | null;
   unpaidMonthKeysOrdered: string[];
@@ -284,6 +285,14 @@ export function ChecklistClient({
                               {new Date(
                                 m.paymentDetail.date_paid
                               ).toLocaleDateString()}
+                              {m.paymentDetail.single_month_only ? (
+                                <>
+                                  {" "}
+                                  <span className="neu-badge neu-badge-neutral">
+                                    single month
+                                  </span>
+                                </>
+                              ) : null}
                             </p>
                             {m.paymentDetail.note ? (
                               <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
@@ -319,6 +328,7 @@ export function ChecklistClient({
         onClose={() => setModalMember(null)}
         memberId={modalMember.id}
         memberName={modalMember.name}
+        checklistMonthKey={monthKey}
         monthlyRate={modalMember.monthlyRate}
         creditBalance={modalMember.credit_balance}
         unpaidMonthKeysOrdered={modalMember.unpaidMonthKeysOrdered}

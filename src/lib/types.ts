@@ -26,8 +26,29 @@ export interface Payment {
   months_covered: number;
   credit_used: number;
   credit_remainder: number;
+  single_month_only: boolean;
   note: string | null;
   created_at: string;
+}
+
+export interface ExpenseItem {
+  id: string;
+  expense_id: string;
+  description: string;
+  amount: number;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface Expense {
+  id: string;
+  title: string;
+  date: string;
+  notes: string | null;
+  total_amount: number;
+  created_by: string | null;
+  created_at: string;
+  items?: ExpenseItem[];
 }
 
 export interface MonthlyChecklist {

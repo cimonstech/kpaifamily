@@ -7,6 +7,7 @@ import {
   getMemberPaymentSubtitle,
   memberPaymentProgressPercent,
 } from "@/lib/utils/member-payment-subtitle";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 export type DashboardMemberRow = {
@@ -211,6 +212,8 @@ export function DashboardMemberList({
     totalOutstanding: number;
     membersPaidUp: number;
     membersBehind: number;
+    totalExpenses: number;
+    expenseCount: number;
   };
   headerDate: string;
   updatedAt: string;
@@ -219,6 +222,7 @@ export function DashboardMemberList({
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<FilterTab>("all");
   const [selected, setSelected] = useState<DashboardMemberRow | null>(null);
+  const router = useRouter();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -270,14 +274,28 @@ export function DashboardMemberList({
             <p className="text-sm" style={{ color: "var(--neu-text-secondary)" }}>
               {headerDate}
             </p>
-            {latestGlobalRate != null ? (
-              <p
-                className="neu-card-sm mt-3 inline-block text-xs lg:ml-auto"
-                style={{ color: "var(--neu-text-secondary)" }}
+            <div className="mt-3 flex flex-wrap gap-2 lg:justify-end">
+              {latestGlobalRate != null ? (
+                <p
+                  className="neu-card-sm inline-block text-xs"
+                  style={{ color: "var(--neu-text-secondary)" }}
+                >
+                  Family reference rate: {formatCedis(latestGlobalRate)}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => router.push("/expenses")}
+                className="inline-flex min-h-[32px] items-center rounded-[99px] px-[14px] py-[6px] text-xs font-bold"
+                style={{
+                  background: "linear-gradient(135deg, #f0c05a, #d4a43c)",
+                  color: "#1a1a2e",
+                  boxShadow: "var(--neu-raised)",
+                }}
               >
-                Family reference rate: {formatCedis(latestGlobalRate)}
-              </p>
-            ) : null}
+                View Expenses
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -294,12 +312,20 @@ export function DashboardMemberList({
             <span className="value">{formatCedis(summary.totalOutstanding)}</span>
           </div>
           <div className="neu-metric">
-            <span className="label">Members paid up</span>
-            <span className="value">{summary.membersPaidUp}</span>
+            <span className="label">Member status</span>
+            <span className="value" style={{ color: "var(--neu-success)" }}>
+              {summary.membersPaidUp} paid up
+            </span>
+            <span className="sub" style={{ color: "var(--neu-danger)" }}>
+              {summary.membersBehind} behind
+            </span>
           </div>
           <div className="neu-metric">
-            <span className="label">Members behind</span>
-            <span className="value">{summary.membersBehind}</span>
+            <span className="label">Total expenses</span>
+            <span className="value" style={{ color: "var(--neu-gold)" }}>
+              {formatCedis(summary.totalExpenses)}
+            </span>
+            <span className="sub">{summary.expenseCount} records</span>
           </div>
         </div>
 

@@ -22,6 +22,9 @@ const EVENT_TYPES = [
   "RATE_CHANGED",
   "ADMIN_ACCOUNT_CREATED",
   "ADMIN_ACCOUNT_DELETED",
+  "EXPENSE_ADDED",
+  "EXPENSE_UPDATED",
+  "EXPENSE_DELETED",
 ] as const;
 
 function formatTimestamp(iso: string) {

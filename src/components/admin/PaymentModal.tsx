@@ -28,6 +28,7 @@ type PaymentModalProps = {
   onClose: () => void;
   memberId: string;
   memberName: string;
+  checklistMonthKey: string;
   monthlyRate: number;
   creditBalance: number;
   unpaidMonthKeysOrdered: string[];
@@ -39,6 +40,7 @@ export function PaymentModal({
   onClose,
   memberId,
   memberName,
+  checklistMonthKey,
   monthlyRate,
   creditBalance,
   unpaidMonthKeysOrdered,
@@ -48,6 +50,7 @@ export function PaymentModal({
   const [amount, setAmount] = useState(String(monthlyRate));
   const [datePaid, setDatePaid] = useState(todayLocalIso());
   const [note, setNote] = useState("");
+  const [singleMonthOnly, setSingleMonthOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,6 +59,7 @@ export function PaymentModal({
       setAmount(String(monthlyRate));
       setDatePaid(todayLocalIso());
       setNote("");
+      setSingleMonthOnly(false);
       setError(null);
       setLoading(false);
     }
@@ -97,6 +101,7 @@ export function PaymentModal({
           amount: numAmount,
           datePaid,
           note: note.trim() || undefined,
+          single_month_only: singleMonthOnly,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -201,30 +206,59 @@ export function PaymentModal({
               className="neu-input mt-1"
             />
           </div>
+          <label className="neu-card-sm flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={singleMonthOnly}
+              onChange={(e) => setSingleMonthOnly(e.target.checked)}
+              disabled={loading}
+              className="neu-checkbox mt-0.5"
+            />
+            <span className="text-sm" style={{ color: "var(--neu-text-primary)" }}>
+              This payment is for this month only
+              <br />
+              <span style={{ color: "var(--neu-text-secondary)" }}>
+                (The full amount will be recorded for this month. No allocation
+                across multiple months.)
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="neu-card-sm mt-5 text-sm" style={{ boxShadow: "var(--neu-pressed-sm)" }}>
-          <p className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
-            This payment covers {monthsPreview} month(s).
-          </p>
-          {monthsPreview > 0 && earliestLabel ? (
-            <p className="mt-2" style={{ color: "var(--neu-text-secondary)" }}>
-              Starting from{" "}
-              <span className="font-bold" style={{ color: "var(--neu-gold)" }}>
-                {earliestLabel}
-              </span>
-              {coveredLabels.length > 1
-                ? ` → ${coveredLabels[coveredLabels.length - 1]!}`
-                : null}
-              .
+          {singleMonthOnly ? (
+            <p className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
+              Full amount of {formatCedis(numAmount)} will be recorded for{" "}
+              <span style={{ color: "var(--neu-gold)" }}>
+                {formatYmLabel(checklistMonthKey)}
+              </span>{" "}
+              only.
             </p>
-          ) : null}
-          {numAmount > monthlyRate && monthlyRate > 0 ? (
-            <p className="mt-2" style={{ color: "var(--neu-text-secondary)" }}>
-              Amount is greater than one month at the current rate — extra
-              coverage is applied to the earliest unpaid months.
-            </p>
-          ) : null}
+          ) : (
+            <>
+              <p className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
+                This payment covers {monthsPreview} month(s).
+              </p>
+              {monthsPreview > 0 && earliestLabel ? (
+                <p className="mt-2" style={{ color: "var(--neu-text-secondary)" }}>
+                  Starting from{" "}
+                  <span className="font-bold" style={{ color: "var(--neu-gold)" }}>
+                    {earliestLabel}
+                  </span>
+                  {coveredLabels.length > 1
+                    ? ` -> ${coveredLabels[coveredLabels.length - 1]!}`
+                    : null}
+                  .
+                </p>
+              ) : null}
+              {numAmount > monthlyRate && monthlyRate > 0 ? (
+                <p className="mt-2" style={{ color: "var(--neu-text-secondary)" }}>
+                  Amount is greater than one month at the current rate - extra
+                  coverage is applied to the earliest unpaid months.
+                </p>
+              ) : null}
+            </>
+          )}
           {creditBalance > 0 ? (
             <p className="mt-2 font-medium" style={{ color: "var(--neu-success)" }}>
               Applies {formatCedis(creditBalance)} existing member credit toward

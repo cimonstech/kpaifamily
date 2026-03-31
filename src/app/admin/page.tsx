@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Home | Admin",
 };
 import { getMemberPaymentSubtitle } from "@/lib/utils/member-payment-subtitle";
-import { calculateBalance } from "@/lib/utils/rate-calculator";
+import { calculateBalance, getMemberRateForMonth } from "@/lib/utils/rate-calculator";
 import type { Member, MemberRate, Payment } from "@/lib/types";
 
 function formatCedis(n: number) {
@@ -47,6 +47,7 @@ function toPayment(p: Record<string, unknown>): Payment {
     months_covered: Number(p.months_covered ?? 0),
     credit_used: Number(p.credit_used ?? 0),
     credit_remainder: Number(p.credit_remainder ?? 0),
+    single_month_only: Boolean(p.single_month_only),
     note: p.note == null ? null : String(p.note),
     created_at: String(p.created_at ?? ""),
   };
@@ -77,6 +78,15 @@ export default async function AdminHomePage() {
   const y = now.getFullYear();
   const mo = String(now.getMonth() + 1).padStart(2, "0");
   const ym = `${y}-${mo}`;
+  const monthFirst = `${ym}-01`;
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  const monthStartIso = `${monthStart.getFullYear()}-${String(
+    monthStart.getMonth() + 1
+  ).padStart(2, "0")}-01`;
+  const monthEndIso = `${monthEnd.getFullYear()}-${String(
+    monthEnd.getMonth() + 1
+  ).padStart(2, "0")}-${String(monthEnd.getDate()).padStart(2, "0")}`;
 
   const monthHeading = now.toLocaleString("en-US", {
     month: "long",
@@ -88,17 +98,32 @@ export default async function AdminHomePage() {
     { data: rawRates },
     { data: rawPayments },
     { data: checklistRows },
+    { data: singleMonthPayments },
     { data: recentRaw },
+    { data: recentExpenses },
+    { data: allExpenses },
   ] = await Promise.all([
     supabase.from("members").select("*"),
     supabase.from("member_rates").select("*"),
     supabase.from("payments").select("*"),
-    supabase.from("monthly_checklist").select("member_id, paid").eq("month", ym),
+    supabase.from("monthly_checklist").select("member_id, paid").eq("month", monthFirst),
+    supabase
+      .from("payments")
+      .select("member_id, amount")
+      .eq("single_month_only", true)
+      .gte("date_paid", monthStartIso)
+      .lte("date_paid", monthEndIso),
     supabase
       .from("payments")
       .select("id, amount, date_paid, note, member_id, members(name)")
       .order("date_paid", { ascending: false })
       .limit(10),
+    supabase
+      .from("expenses")
+      .select("id, title, date, total_amount")
+      .order("date", { ascending: false })
+      .limit(3),
+    supabase.from("expenses").select("total_amount"),
   ]);
 
   const members = (rawMembers ?? []).map((r) =>
@@ -123,16 +148,7 @@ export default async function AdminHomePage() {
     toPayment(r as Record<string, unknown>)
   );
 
-  const totalCollected = payments.reduce((s, p) => s + p.amount, 0);
-
-  const sm = startOfMonth(now);
-  const em = endOfMonth(now);
-  const paidThisMonth = payments
-    .filter((p) => {
-      const d = new Date(p.date_paid);
-      return d >= sm && d <= em;
-    })
-    .reduce((s, p) => s + p.amount, 0);
+  const grossCollected = payments.reduce((s, p) => s + p.amount, 0);
 
   const activeMembers = members.filter((m) => m.active);
   const paidMemberIds = new Set(
@@ -144,6 +160,22 @@ export default async function AdminHomePage() {
   const paidUpThisMonthCount = activeMembers.filter((m) =>
     paidMemberIds.has(m.id)
   ).length;
+  const singleMonthPaymentMap = new Map<string, number>();
+  for (const row of singleMonthPayments ?? []) {
+    const p = row as { member_id: string; amount: number };
+    const existing = singleMonthPaymentMap.get(p.member_id) ?? 0;
+    singleMonthPaymentMap.set(p.member_id, existing + Number(p.amount));
+  }
+  const totalPaidThisMonth = activeMembers
+    .filter((m) => paidMemberIds.has(m.id))
+    .reduce((sum, m) => {
+      const rates = ratesByMember.get(m.id) ?? [];
+      const rateForMonth = getMemberRateForMonth(rates, monthStart);
+      const amount = singleMonthPaymentMap.has(m.id)
+        ? (singleMonthPaymentMap.get(m.id) ?? 0)
+        : rateForMonth;
+      return sum + amount;
+    }, 0);
   const notYetPaidThisMonth = Math.max(
     0,
     activeMembers.length - paidUpThisMonthCount
@@ -188,6 +220,11 @@ export default async function AdminHomePage() {
         : String((row as { note: unknown }).note),
     memberName: joinMemberName((row as { members: unknown }).members),
   }));
+  const totalExpenses = (allExpenses ?? []).reduce(
+    (s, row) => s + Number((row as { total_amount?: number }).total_amount ?? 0),
+    0
+  );
+  const totalCollected = grossCollected - totalExpenses;
 
   return (
     <div className="mx-auto max-w-5xl p-4 sm:p-8 lg:p-0" style={{ background: "transparent" }}>
@@ -205,7 +242,7 @@ export default async function AdminHomePage() {
         </Link>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         <div className="neu-metric relative overflow-hidden">
           <div
             className="neu-avatar absolute right-3 top-3 h-8 w-8 text-[var(--neu-info)]"
@@ -235,7 +272,8 @@ export default async function AdminHomePage() {
             ✓
           </div>
           <span className="label">Paid this month</span>
-          <span className="value metric-value">{formatCedis(paidThisMonth)}</span>
+          <span className="value metric-value">{formatCedis(totalPaidThisMonth)}</span>
+          <span className="sub">{paidUpThisMonthCount} members</span>
         </div>
         <div className="neu-metric relative overflow-hidden">
           <div
@@ -244,9 +282,23 @@ export default async function AdminHomePage() {
           >
             !
           </div>
-          <span className="label">Not yet paid</span>
-          <span className="value metric-value">{notYetPaidThisMonth}</span>
-          <span className="sub">Active members</span>
+          <span className="label">Member status</span>
+          <span className="value metric-value" style={{ color: "var(--neu-success)" }}>
+            {paidUpThisMonthCount} paid up
+          </span>
+          <span className="sub" style={{ color: "var(--neu-danger)" }}>
+            {notYetPaidThisMonth} not yet paid
+          </span>
+        </div>
+        <div className="neu-metric relative overflow-hidden">
+          <div
+            className="neu-avatar absolute right-3 top-3 h-8 w-8 text-[var(--neu-gold)]"
+            style={{ fontSize: "14px", boxShadow: "var(--neu-flat)" }}
+          >
+            ¢
+          </div>
+          <span className="label">Total Expenses</span>
+          <span className="value metric-value">{formatCedis(totalExpenses)}</span>
         </div>
       </div>
 
@@ -355,6 +407,55 @@ export default async function AdminHomePage() {
           </ul>
         </section>
       </div>
+
+      <section className="neu-card mt-8">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-serif text-lg font-bold" style={{ color: "var(--neu-text-primary)" }}>
+            Recent expenses
+          </h2>
+          <Link href="/admin/expenses" className="text-sm font-semibold hover:underline" style={{ color: "var(--neu-gold)" }}>
+            View all
+          </Link>
+        </div>
+        <ul className="mt-4 list-none p-0">
+          {(recentExpenses ?? []).length === 0 ? (
+            <li className="py-4 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
+              No expenses yet
+            </li>
+          ) : (
+            (recentExpenses ?? []).map((row, idx) => {
+              const r = row as {
+                id: string;
+                title: string;
+                date: string;
+                total_amount: number;
+              };
+              return (
+                <li key={r.id}>
+                  {idx > 0 ? <div className="neu-divider" style={{ margin: "0" }} /> : null}
+                  <div className="flex items-center justify-between gap-2 py-4 text-sm">
+                    <div>
+                      <p className="font-medium" style={{ color: "var(--neu-text-primary)" }}>
+                        {r.title}
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                        {new Date(r.date).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    <span className="font-bold" style={{ color: "var(--neu-gold)" }}>
+                      {formatCedis(Number(r.total_amount))}
+                    </span>
+                  </div>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      </section>
     </div>
   );
 }
