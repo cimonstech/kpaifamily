@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { logEvent } from "@/lib/db/audit";
+import { cookieSecure } from "@/lib/cookies";
 import { rateLimit } from "@/lib/security/rate-limiter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
   const res = NextResponse.json({ success: true });
   res.cookies.set("viewer_session", accessCode.code, {
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure(),
     sameSite: "lax",
     maxAge: 60 * 60 * 24,
     path: "/",

@@ -94,6 +94,7 @@ export async function POST(request: Request) {
     start_date?: string | null;
     anonymous?: boolean;
     monthly_rate?: number;
+    variable_contributor?: boolean;
   };
   try {
     body = await request.json();
@@ -119,13 +120,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const monthly_rate = Number(body.monthly_rate);
-  if (Number.isNaN(monthly_rate) || monthly_rate <= 0) {
-    return NextResponse.json(
-      { error: "Monthly rate must be greater than 0" },
-      { status: 400 }
-    );
-  }
+  const variable_contributor = Boolean(body.variable_contributor);
 
   const supabase = await createSupabaseServerClient();
   const todayStr = todayIsoDate();
@@ -138,6 +133,17 @@ export async function POST(request: Request) {
   const globalDefault = gPicked?.rate ?? DEFAULT_MONTHLY_RATE;
 
   const globalRate = Number.isNaN(globalDefault) ? DEFAULT_MONTHLY_RATE : globalDefault;
+
+  let monthly_rate = Number(body.monthly_rate);
+  if (variable_contributor) {
+    monthly_rate = globalRate;
+  } else if (Number.isNaN(monthly_rate) || monthly_rate <= 0) {
+    return NextResponse.json(
+      { error: "Monthly rate must be greater than 0" },
+      { status: 400 }
+    );
+  }
+
   const source =
     Math.abs(monthly_rate - globalRate) < 0.005 ? ("global" as const) : ("override" as const);
 
@@ -151,6 +157,7 @@ export async function POST(request: Request) {
       active,
       start_date: start_date ?? null,
       anonymous: Boolean(body.anonymous),
+      variable_contributor,
       credit_balance: 0,
     })
     .select()

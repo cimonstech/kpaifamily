@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { logEvent } from "@/lib/db/audit";
+import { cookieSecure } from "@/lib/cookies";
 import { hashToken } from "@/lib/security/hash-token";
 import { rateLimit } from "@/lib/security/rate-limiter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
   const res = NextResponse.json({ success: true });
   res.cookies.set("admin_token", "", {
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure(),
     sameSite: "lax",
     maxAge: 0,
     path: "/",

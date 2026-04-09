@@ -35,6 +35,12 @@ export async function rateLimit(
   maxAttempts: number,
   windowMs: number
 ): Promise<{ allowed: boolean; remaining: number; retryAfterMs: number }> {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    return { allowed: true, remaining: 999, retryAfterMs: 0 };
+  }
+
   const prefix = key.split(":")[0] ?? "default";
   const limiter = getLimiter(prefix, maxAttempts, windowMs);
 

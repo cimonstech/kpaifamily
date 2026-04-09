@@ -5,8 +5,18 @@ export interface Member {
   active: boolean;
   start_date: string;
   anonymous: boolean;
+  /** When true, member is a voluntary contributor (no fixed monthly commitment). */
+  variable_contributor: boolean;
   credit_balance: number;
   created_at: string;
+}
+
+export type MemberCategory = "standard" | "voluntary" | "pending";
+
+export function getMemberCategory(member: Member): MemberCategory {
+  if (!member.active) return "pending";
+  if (member.variable_contributor) return "voluntary";
+  return "standard";
 }
 
 export interface MemberRate {

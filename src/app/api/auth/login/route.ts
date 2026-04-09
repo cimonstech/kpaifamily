@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { logEvent } from "@/lib/db/audit";
 import { signAdminToken } from "@/lib/auth/session";
+import { cookieSecure } from "@/lib/cookies";
 import { rateLimit } from "@/lib/security/rate-limiter";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     const res = NextResponse.json({ success: true, mustResetPassword: true });
     res.cookies.set("reset_required", admin.id, {
       httpOnly: true,
-      secure: true,
+      secure: cookieSecure(),
       sameSite: "lax",
       maxAge: 60 * 15,
       path: "/",
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
   const res = NextResponse.json({ success: true, role: admin.role });
   res.cookies.set("admin_token", token, {
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure(),
     sameSite: "lax",
     maxAge: 60 * 60 * 8,
     path: "/",

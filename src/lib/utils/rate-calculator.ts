@@ -60,10 +60,24 @@ export function calculateBalance(
   memberRates: MemberRate[],
   startDate: Date,
   totalPaid: number,
-  creditBalance: number
+  creditBalance: number,
+  variableContributor = false
 ): number {
+  if (variableContributor) return 0;
   const expectedTotal = calculateExpectedTotal(memberRates, startDate);
   return expectedTotal - totalPaid - creditBalance;
+}
+
+export function getMemberStatus(
+  balance: number,
+  active: boolean,
+  variableContributor: boolean
+): "ahead" | "ok" | "behind" | "pending" | "voluntary" {
+  if (!active) return "pending";
+  if (variableContributor) return "voluntary";
+  if (balance < -0.01) return "ahead";
+  if (balance <= 0.01) return "ok";
+  return "behind";
 }
 
 /** Calendar months from `startDate` through today, inclusive (same bounds as expected total). */

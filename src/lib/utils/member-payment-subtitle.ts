@@ -8,7 +8,8 @@ export type MemberPaymentSubtitleStatus =
   | "ahead"
   | "ok"
   | "behind"
-  | "pending";
+  | "pending"
+  | "voluntary";
 
 /**
  * Display line under member name: "GHS X paid · …" with color by balance state.
@@ -20,6 +21,12 @@ export function getMemberPaymentSubtitle(
   status: MemberPaymentSubtitleStatus
 ): { text: string; colorVar: string } {
   const paid = `${cedis(totalPaid)} paid`;
+  if (status === "voluntary") {
+    return {
+      text: `${cedis(totalPaid)} total contributed`,
+      colorVar: "var(--neu-text-secondary)",
+    };
+  }
   if (status === "pending") {
     return { text: paid, colorVar: "var(--neu-text-secondary)" };
   }

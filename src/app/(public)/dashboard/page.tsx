@@ -46,8 +46,9 @@ function toMember(m: Record<string, unknown>): Member {
     name: String(m.name),
     branch: String(m.branch ?? ""),
     active: Boolean(m.active),
-    start_date: String(m.start_date),
+    start_date: String(m.start_date ?? ""),
     anonymous: Boolean(m.anonymous),
+    variable_contributor: Boolean(m.variable_contributor),
     credit_balance: Number(m.credit_balance ?? 0),
     created_at: String(m.created_at ?? ""),
   };
@@ -86,6 +87,7 @@ export default async function DashboardPage() {
   const members = (rawMembers ?? []).map((r) =>
     toMember(r as Record<string, unknown>)
   );
+  const publicMembers = members.filter((m) => !m.variable_contributor);
   const ratesByMember = new Map<string, MemberRate[]>();
   for (const row of rawRates ?? []) {
     const mr = toMemberRate(row as Record<string, unknown>);
@@ -109,13 +111,19 @@ export default async function DashboardPage() {
     paymentsByMember.set(p.member_id, list);
   }
 
-  const rows: DashboardMemberRow[] = members.map((m) => {
+  const rows: DashboardMemberRow[] = publicMembers.map((m) => {
     const rates = ratesByMember.get(m.id) ?? [];
     const payments = paymentsByMember.get(m.id) ?? [];
     const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
     const startDate = new Date(m.start_date);
     const expectedTotal = calculateExpectedTotal(rates, startDate);
-    const balance = calculateBalance(rates, startDate, totalPaid, m.credit_balance);
+    const balance = calculateBalance(
+      rates,
+      startDate,
+      totalPaid,
+      m.credit_balance,
+      false
+    );
     const displayName = m.anonymous ? "Anonymous" : m.name;
     let status: DashboardMemberRow["status"];
     if (!m.active) status = "pending";

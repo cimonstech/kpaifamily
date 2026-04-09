@@ -20,8 +20,9 @@ function toMember(r: Record<string, unknown>): Member {
     name: String(r.name),
     branch: String(r.branch ?? ""),
     active: Boolean(r.active),
-    start_date: String(r.start_date),
+    start_date: String(r.start_date ?? ""),
     anonymous: Boolean(r.anonymous),
+    variable_contributor: Boolean(r.variable_contributor),
     credit_balance: Number(r.credit_balance ?? 0),
     created_at: String(r.created_at ?? ""),
   };
@@ -151,13 +152,14 @@ export default async function AdminHomePage() {
   const grossCollected = payments.reduce((s, p) => s + p.amount, 0);
 
   const activeMembers = members.filter((m) => m.active);
+  const standardActiveMembers = activeMembers.filter((m) => !m.variable_contributor);
   const paidMemberIds = new Set(
     (checklistRows ?? [])
       .filter((row) => (row as { paid?: boolean }).paid === true)
       .map((row) => String((row as { member_id: string }).member_id))
   );
 
-  const paidUpThisMonthCount = activeMembers.filter((m) =>
+  const paidUpThisMonthCount = standardActiveMembers.filter((m) =>
     paidMemberIds.has(m.id)
   ).length;
   const singleMonthPaymentMap = new Map<string, number>();
@@ -166,9 +168,23 @@ export default async function AdminHomePage() {
     const existing = singleMonthPaymentMap.get(p.member_id) ?? 0;
     singleMonthPaymentMap.set(p.member_id, existing + Number(p.amount));
   }
+  function paymentsInMonthForMember(memberId: string): number {
+    return payments
+      .filter(
+        (p) =>
+          p.member_id === memberId &&
+          p.date_paid >= monthStartIso &&
+          p.date_paid <= monthEndIso
+      )
+      .reduce((s, p) => s + p.amount, 0);
+  }
+
   const totalPaidThisMonth = activeMembers
     .filter((m) => paidMemberIds.has(m.id))
     .reduce((sum, m) => {
+      if (m.variable_contributor) {
+        return sum + paymentsInMonthForMember(m.id);
+      }
       const rates = ratesByMember.get(m.id) ?? [];
       const rateForMonth = getMemberRateForMonth(rates, monthStart);
       const amount = singleMonthPaymentMap.has(m.id)
@@ -178,7 +194,7 @@ export default async function AdminHomePage() {
     }, 0);
   const notYetPaidThisMonth = Math.max(
     0,
-    activeMembers.length - paidUpThisMonthCount
+    standardActiveMembers.length - paidUpThisMonthCount
   );
 
   const behindRows: { id: string; name: string; owed: number; totalPaid: number }[] =
@@ -186,6 +202,7 @@ export default async function AdminHomePage() {
   let totalOutstanding = 0;
 
   for (const m of activeMembers) {
+    if (m.variable_contributor) continue;
     const rates = ratesByMember.get(m.id) ?? [];
     const memberPayments = payments.filter((p) => p.member_id === m.id);
     const totalPair = memberPayments.reduce((s, p) => s + p.amount, 0);
@@ -194,7 +211,8 @@ export default async function AdminHomePage() {
       rates,
       startDate,
       totalPair,
-      m.credit_balance
+      m.credit_balance,
+      false
     );
     if (balance > 0.01) {
       behindRows.push({
@@ -226,6 +244,14 @@ export default async function AdminHomePage() {
   );
   const totalCollected = grossCollected - totalExpenses;
 
+  const voluntaryMemberIds = new Set(
+    activeMembers.filter((m) => m.variable_contributor).map((m) => m.id)
+  );
+  const totalVoluntaryContributions = payments
+    .filter((p) => voluntaryMemberIds.has(p.member_id))
+    .reduce((s, p) => s + p.amount, 0);
+  const voluntaryCount = activeMembers.filter((m) => m.variable_contributor).length;
+
   return (
     <div className="mx-auto max-w-5xl p-4 sm:p-8 lg:p-0" style={{ background: "transparent" }}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -242,7 +268,7 @@ export default async function AdminHomePage() {
         </Link>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         <div className="neu-metric relative overflow-hidden">
           <div
             className="neu-avatar absolute right-3 top-3 h-8 w-8 text-[var(--neu-info)]"
@@ -253,6 +279,23 @@ export default async function AdminHomePage() {
           <span className="label">Total collected</span>
           <span className="value metric-value">{formatCedis(totalCollected)}</span>
           <span className="sub">All time</span>
+        </div>
+        <div
+          className="neu-metric relative overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, #667eea, #764ba2)",
+            color: "white",
+          }}
+        >
+          <span className="label" style={{ color: "rgba(255,255,255,0.9)" }}>
+            Voluntary contributions
+          </span>
+          <span className="value metric-value" style={{ color: "white" }}>
+            {formatCedis(totalVoluntaryContributions)}
+          </span>
+          <span className="sub" style={{ color: "rgba(255,255,255,0.85)" }}>
+            {voluntaryCount} contributor{voluntaryCount === 1 ? "" : "s"}
+          </span>
         </div>
         <div className="neu-metric relative overflow-hidden">
           <div

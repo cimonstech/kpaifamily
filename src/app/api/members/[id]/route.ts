@@ -23,8 +23,9 @@ function toMember(r: Record<string, unknown>): Member {
     name: String(r.name),
     branch: String(r.branch ?? ""),
     active: Boolean(r.active),
-    start_date: String(r.start_date),
+    start_date: String(r.start_date ?? ""),
     anonymous: Boolean(r.anonymous),
+    variable_contributor: Boolean(r.variable_contributor),
     credit_balance: Number(r.credit_balance ?? 0),
     created_at: String(r.created_at ?? ""),
   };
@@ -106,7 +107,8 @@ export async function GET(request: Request, context: RouteContext) {
     rates,
     startDate,
     totalPaid,
-    member.credit_balance
+    member.credit_balance,
+    member.variable_contributor
   );
 
   return NextResponse.json({
@@ -133,6 +135,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     start_date?: string;
     anonymous?: boolean;
     monthly_rate?: number;
+    variable_contributor?: boolean;
   };
   try {
     body = await request.json();
@@ -144,7 +147,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   const { data: existing, error: exErr } = await supabase
     .from("members")
-    .select("id")
+    .select("id, variable_contributor")
     .eq("id", id)
     .maybeSingle();
 
@@ -152,12 +155,19 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
   }
 
+  const wasVoluntary = Boolean(
+    (existing as { variable_contributor?: boolean }).variable_contributor
+  );
+
   const update: Record<string, unknown> = {};
   if (body.name !== undefined) update.name = body.name;
   if (body.branch !== undefined) update.branch = body.branch;
   if (body.active !== undefined) update.active = body.active;
   if (body.start_date !== undefined) update.start_date = body.start_date;
   if (body.anonymous !== undefined) update.anonymous = body.anonymous;
+  if (body.variable_contributor !== undefined) {
+    update.variable_contributor = Boolean(body.variable_contributor);
+  }
 
   if (Object.keys(update).length > 0) {
     const { error: upErr } = await supabase
@@ -171,9 +181,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
   }
 
+  const voluntaryAfterUpdate =
+    body.variable_contributor !== undefined
+      ? Boolean(body.variable_contributor)
+      : wasVoluntary;
+
   if (
     body.monthly_rate !== undefined &&
-    !Number.isNaN(Number(body.monthly_rate))
+    !Number.isNaN(Number(body.monthly_rate)) &&
+    !voluntaryAfterUpdate
   ) {
     const now = new Date();
     const effective_from = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;

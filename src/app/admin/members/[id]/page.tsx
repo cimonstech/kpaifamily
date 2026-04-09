@@ -82,6 +82,7 @@ export default async function MemberDetailPage({
     active: Boolean(rec.active),
     start_date: rec.start_date == null ? null : String(rec.start_date).slice(0, 10),
     anonymous: Boolean(rec.anonymous),
+    variable_contributor: Boolean(rec.variable_contributor),
     credit_balance: Number(rec.credit_balance ?? 0),
     created_at: String(rec.created_at ?? ""),
   };
@@ -142,12 +143,24 @@ export default async function MemberDetailPage({
   if (member.start_date && member.active) {
     const sd = new Date(member.start_date);
     expectedTotal = calculateExpectedTotal(ratesAsc, sd);
-    balance = calculateBalance(ratesAsc, sd, totalPaid, member.credit_balance);
+    balance = calculateBalance(
+      ratesAsc,
+      sd,
+      totalPaid,
+      member.credit_balance,
+      member.variable_contributor
+    );
     monthsContributing = getMonthsElapsed(sd);
   } else if (member.start_date) {
     const sd = new Date(member.start_date);
     expectedTotal = calculateExpectedTotal(ratesAsc, sd);
-    balance = calculateBalance(ratesAsc, sd, totalPaid, member.credit_balance);
+    balance = calculateBalance(
+      ratesAsc,
+      sd,
+      totalPaid,
+      member.credit_balance,
+      member.variable_contributor
+    );
     monthsContributing = getMonthsElapsed(sd);
   }
 

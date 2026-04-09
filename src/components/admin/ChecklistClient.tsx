@@ -24,6 +24,7 @@ export type ChecklistMemberVM = {
     note: string | null;
   } | null;
   unpaidMonthKeysOrdered: string[];
+  variableContributor: boolean;
 };
 
 function formatCedis(n: number) {
@@ -106,6 +107,23 @@ export function ChecklistClient({
     } catch {
       showToast("Network error", "error");
     }
+  }
+
+  function voluntaryBadge() {
+    return (
+      <span
+        className="text-[10px] font-bold uppercase tracking-wide"
+        style={{
+          padding: "3px 8px",
+          borderRadius: 999,
+          background: "linear-gradient(135deg, #667eea, #764ba2)",
+          color: "white",
+          boxShadow: "var(--neu-flat)",
+        }}
+      >
+        Voluntary
+      </span>
+    );
   }
 
   function balanceBadge(balance: number) {
@@ -219,10 +237,11 @@ export function ChecklistClient({
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 pl-[56px] lg:ml-auto lg:shrink-0 lg:pl-0">
+                    {m.variableContributor ? voluntaryBadge() : null}
                     <span className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
-                      {formatCedis(m.monthlyRate)}/mo
+                      {m.variableContributor ? "—" : `${formatCedis(m.monthlyRate)}/mo`}
                     </span>
-                    {balanceBadge(m.balance)}
+                    {m.variableContributor ? null : balanceBadge(m.balance)}
                     {m.credit_balance > 0.01 ? (
                       <span className="neu-badge neu-badge-success">
                         {formatCedis(m.credit_balance)} credit
@@ -275,9 +294,12 @@ export function ChecklistClient({
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
-                          {m.name}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
+                            {m.name}
+                          </p>
+                          {m.variableContributor ? voluntaryBadge() : null}
+                        </div>
                         {m.paymentDetail ? (
                           <>
                             <p className="text-xs" style={{ color: "var(--neu-text-secondary)" }}>
@@ -332,6 +354,7 @@ export function ChecklistClient({
         monthlyRate={modalMember.monthlyRate}
         creditBalance={modalMember.credit_balance}
         unpaidMonthKeysOrdered={modalMember.unpaidMonthKeysOrdered}
+        isVoluntary={modalMember.variableContributor}
         onRecorded={() => router.refresh()}
       />
     ) : null}

@@ -32,6 +32,8 @@ type PaymentModalProps = {
   monthlyRate: number;
   creditBalance: number;
   unpaidMonthKeysOrdered: string[];
+  /** When true, amount is free-form; single-month checkbox defaults on. */
+  isVoluntary?: boolean;
   onRecorded: () => void;
 };
 
@@ -44,6 +46,7 @@ export function PaymentModal({
   monthlyRate,
   creditBalance,
   unpaidMonthKeysOrdered,
+  isVoluntary = false,
   onRecorded,
 }: PaymentModalProps) {
   const { showToast } = useToast();
@@ -56,14 +59,19 @@ export function PaymentModal({
 
   useEffect(() => {
     if (open) {
-      setAmount(String(monthlyRate));
+      if (isVoluntary) {
+        setAmount("");
+        setSingleMonthOnly(true);
+      } else {
+        setAmount(String(monthlyRate));
+        setSingleMonthOnly(false);
+      }
       setDatePaid(todayLocalIso());
       setNote("");
-      setSingleMonthOnly(false);
       setError(null);
       setLoading(false);
     }
-  }, [open, monthlyRate]);
+  }, [open, monthlyRate, isVoluntary]);
 
   const numAmount = parseFloat(amount) || 0;
 
@@ -87,8 +95,8 @@ export function PaymentModal({
 
   async function onConfirm() {
     setError(null);
-    if (numAmount < 0) {
-      setError("Amount must be positive.");
+    if (numAmount <= 0) {
+      setError("Amount must be greater than 0.");
       return;
     }
     setLoading(true);
@@ -149,7 +157,19 @@ export function PaymentModal({
               {memberName}
             </h2>
             <p className="mt-1 text-sm" style={{ color: "var(--neu-text-secondary)" }}>
-              Monthly rate: {formatCedis(monthlyRate)}/mo
+              {isVoluntary ? (
+                <span
+                  className="inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white"
+                  style={{
+                    background: "linear-gradient(135deg, #667eea, #764ba2)",
+                    boxShadow: "var(--neu-flat)",
+                  }}
+                >
+                  Voluntary
+                </span>
+              ) : (
+                <>Monthly rate: {formatCedis(monthlyRate)}/mo</>
+              )}
             </p>
           </div>
           <button
@@ -182,6 +202,11 @@ export function PaymentModal({
               onChange={(e) => setAmount(e.target.value)}
               className="neu-input mt-1"
             />
+            {isVoluntary ? (
+              <p className="mt-1 text-xs italic" style={{ color: "var(--neu-text-secondary)" }}>
+                Voluntary contributor — enter actual amount paid
+              </p>
+            ) : null}
           </div>
           <div>
             <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>

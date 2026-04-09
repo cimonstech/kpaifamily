@@ -188,6 +188,7 @@ export async function POST(request: Request) {
     anonymous: boolean;
     credit_balance: number;
     start_date: string;
+    variable_contributor: boolean;
   };
 
   const activeMembers: ActiveMember[] = members.map((raw) => ({
@@ -196,12 +197,27 @@ export async function POST(request: Request) {
     anonymous: Boolean(raw.anonymous),
     credit_balance: Number(raw.credit_balance ?? 0),
     start_date: raw.start_date == null ? "" : String(raw.start_date),
+    variable_contributor: Boolean(raw.variable_contributor),
   }));
 
   const totalPaidMap = new Map<string, number>();
   for (const p of allPayments) {
     const existing = totalPaidMap.get(p.member_id) ?? 0;
     totalPaidMap.set(p.member_id, existing + Number(p.amount));
+  }
+
+  const monthStartStr = firstDayOfMonth.toISOString().slice(0, 10);
+  const monthEndStr = lastDayOfMonth.toISOString().slice(0, 10);
+
+  function paymentsInReportMonth(memberId: string): number {
+    return allPayments
+      .filter(
+        (p) =>
+          p.member_id === memberId &&
+          p.date_paid >= monthStartStr &&
+          p.date_paid <= monthEndStr
+      )
+      .reduce((s, p) => s + p.amount, 0);
   }
 
   const paidMembersWhatsapp = activeMembers
@@ -211,9 +227,11 @@ export async function POST(request: Request) {
         memberRatesMap.get(m.id) ?? [],
         firstDayOfMonth
       );
-      const amountToShow = singleMonthPaymentMap.has(m.id)
-        ? (singleMonthPaymentMap.get(m.id) ?? 0)
-        : rateForMonth;
+      const amountToShow = m.variable_contributor
+        ? paymentsInReportMonth(m.id)
+        : singleMonthPaymentMap.has(m.id)
+          ? (singleMonthPaymentMap.get(m.id) ?? 0)
+          : rateForMonth;
       return {
         name: m.name,
         anonymous: m.anonymous,
@@ -240,6 +258,7 @@ export async function POST(request: Request) {
 
   const unpaidMembersWhatsapp = activeMembers
     .filter((m) => {
+      if (m.variable_contributor) return false;
       if (paidMemberIds.has(m.id)) return false;
       if (!m.start_date) return false;
       const startDate = new Date(m.start_date);
@@ -267,6 +286,7 @@ export async function POST(request: Request) {
   type Row = ReportData["members"][number] & { name: string; memberId: string };
 
   const totalOutstanding = activeMembers.reduce((sum, m) => {
+    if (m.variable_contributor) return sum;
     const memberRateHistory = memberRatesMap.get(m.id) ?? [];
     if (!m.start_date) return sum;
     const expectedTotal = calculateExpectedTotal(memberRateHistory, new Date(m.start_date));
@@ -284,24 +304,34 @@ export async function POST(request: Request) {
     const anonymous = Boolean(raw.anonymous);
     const credit_balance = Number(raw.credit_balance ?? 0);
     const start_date = raw.start_date == null ? "" : String(raw.start_date);
+    const variable_contributor = Boolean(raw.variable_contributor);
     const rates = memberRatesMap.get(id) ?? [];
     const totalPaid = totalPaidMap.get(id) ?? 0;
 
     let balance = 0;
     if (start_date) {
       const sd = new Date(start_date);
-      balance = calculateBalance(rates, sd, totalPaid, credit_balance);
+      balance = calculateBalance(
+        rates,
+        sd,
+        totalPaid,
+        credit_balance,
+        variable_contributor
+      );
     }
 
     const paidThisMonth = paidMemberIds.has(id);
     const amountPaidThisMonth = paidThisMonth
-      ? (singleMonthPaymentMap.has(id)
-        ? (singleMonthPaymentMap.get(id) ?? 0)
-        : getMemberRateForMonth(rates, firstDayOfMonth))
+      ? variable_contributor
+        ? paymentsInReportMonth(id)
+        : singleMonthPaymentMap.has(id)
+          ? (singleMonthPaymentMap.get(id) ?? 0)
+          : getMemberRateForMonth(rates, firstDayOfMonth)
       : 0;
 
     let status = "Paid up";
-    if (!start_date) status = "Pending";
+    if (variable_contributor) status = "Voluntary";
+    else if (!start_date) status = "Pending";
     else if (paidThisMonth) status = "Paid up";
     else if (balance > 0.01) status = "Behind";
     else if (balance < -0.01) status = "Ahead";

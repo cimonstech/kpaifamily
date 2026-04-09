@@ -49,8 +49,9 @@ function toMember(r: Record<string, unknown>): Member {
     name: String(r.name),
     branch: String(r.branch ?? ""),
     active: Boolean(r.active),
-    start_date: String(r.start_date),
+    start_date: String(r.start_date ?? ""),
     anonymous: Boolean(r.anonymous),
+    variable_contributor: Boolean(r.variable_contributor),
     credit_balance: Number(r.credit_balance ?? 0),
     created_at: String(r.created_at ?? ""),
   };
@@ -204,7 +205,8 @@ export default async function ChecklistMonthPage({
       rates,
       new Date(m.start_date),
       totalPaid,
-      m.credit_balance
+      m.credit_balance,
+      m.variable_contributor
     );
 
     const paidMap = paidMapByMember.get(m.id) ?? new Map<string, boolean>();
@@ -244,6 +246,7 @@ export default async function ChecklistMonthPage({
       paymentId,
       paymentDetail,
       unpaidMonthKeysOrdered,
+      variableContributor: m.variable_contributor,
     });
   }
 

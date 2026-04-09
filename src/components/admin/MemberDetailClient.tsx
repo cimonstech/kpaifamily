@@ -14,6 +14,7 @@ export type MemberDetailMember = {
   active: boolean;
   start_date: string | null;
   anonymous: boolean;
+  variable_contributor: boolean;
   credit_balance: number;
   created_at: string;
 };
@@ -61,6 +62,9 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
     initialMember.start_date ? initialMember.start_date.slice(0, 7) : ""
   );
   const [formAnonymous, setFormAnonymous] = useState(initialMember.anonymous);
+  const [formVariableContributor, setFormVariableContributor] = useState(
+    initialMember.variable_contributor
+  );
   const [formRate, setFormRate] = useState(String(data.currentRate));
   const [saving, setSaving] = useState(false);
 
@@ -76,6 +80,7 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
       data.member.start_date ? data.member.start_date.slice(0, 7) : ""
     );
     setFormAnonymous(data.member.anonymous);
+    setFormVariableContributor(data.member.variable_contributor);
     setFormRate(String(data.currentRate));
   }, [
     data.member.name,
@@ -83,10 +88,14 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
     data.member.active,
     data.member.start_date,
     data.member.anonymous,
+    data.member.variable_contributor,
     data.currentRate,
   ]);
 
   const balanceLabel = useMemo(() => {
+    if (data.member.variable_contributor) {
+      return { text: "Voluntary", color: "white" };
+    }
     if (!data.member.start_date && !data.member.active) {
       return { text: "—", color: "var(--neu-text-secondary)" };
     }
@@ -106,7 +115,12 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
       text: `${formatCedis(0)} even`,
       color: "var(--neu-success)",
     };
-  }, [data.balance, data.member.active, data.member.start_date]);
+  }, [
+    data.balance,
+    data.member.active,
+    data.member.start_date,
+    data.member.variable_contributor,
+  ]);
 
   const monthStatusGrid = useMemo(() => {
     type CellStatus = "paid" | "unpaid" | "before-start";
@@ -195,7 +209,7 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
 
   async function savePanel() {
     const rateNum = parseFloat(formRate);
-    if (Number.isNaN(rateNum) || rateNum <= 0) {
+    if (!formVariableContributor && (Number.isNaN(rateNum) || rateNum <= 0)) {
       showToast("Monthly rate must be greater than 0", "error");
       return;
     }
@@ -210,6 +224,7 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
         branch: formBranch.trim(),
         active: formActive,
         anonymous: formAnonymous,
+        variable_contributor: formVariableContributor,
       };
       if (formActive && formStartMonth) {
         body.start_date = `${formStartMonth}-01`;
@@ -217,7 +232,7 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
         body.start_date = null;
       }
       const rateChanged =
-        Math.abs(rateNum - data.currentRate) > 0.005;
+        !formVariableContributor && Math.abs(rateNum - data.currentRate) > 0.005;
       if (rateChanged) {
         body.monthly_rate = rateNum;
       }
@@ -350,6 +365,20 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                 Anonymous on dashboard
               </span>
             ) : null}
+            {data.member.variable_contributor ? (
+              <span
+                className="text-[11px] font-semibold uppercase tracking-wide"
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: "linear-gradient(135deg, #667eea, #764ba2)",
+                  color: "white",
+                  boxShadow: "var(--neu-flat)",
+                }}
+              >
+                Voluntary
+              </span>
+            ) : null}
           </div>
         </div>
       </header>
@@ -365,14 +394,38 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
             {formatCedis(data.credit_balance)}
           </span>
         </div>
-        <div className="neu-metric col-span-2 lg:col-span-1">
-          <span className="label">Balance</span>
+        <div
+          className="neu-metric col-span-2 overflow-hidden lg:col-span-1"
+          style={
+            data.member.variable_contributor
+              ? {
+                  background: "linear-gradient(135deg, #667eea, #764ba2)",
+                  color: "white",
+                }
+              : undefined
+          }
+        >
+          <span
+            className="label"
+            style={
+              data.member.variable_contributor
+                ? { color: "rgba(255,255,255,0.9)" }
+                : undefined
+            }
+          >
+            Balance
+          </span>
           <span
             className="value text-lg sm:text-xl"
             style={{ color: balanceLabel.color }}
           >
             {balanceLabel.text}
           </span>
+          {data.member.variable_contributor ? (
+            <span className="sub" style={{ color: "rgba(255,255,255,0.88)" }}>
+              No fixed commitment
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -386,12 +439,24 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
         <span className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
           {data.monthsPaidSum}
         </span>
-        {" · "}
-        Months expected (through today):{" "}
-        <span className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
-          {data.monthsExpected}
-        </span>
+        {data.member.variable_contributor ? null : (
+          <>
+            {" · "}
+            Months expected (through today):{" "}
+            <span className="font-semibold" style={{ color: "var(--neu-text-primary)" }}>
+              {data.monthsExpected}
+            </span>
+          </>
+        )}
       </p>
+      {data.member.variable_contributor ? (
+        <p
+          className="mt-2 text-xs italic"
+          style={{ color: "var(--neu-text-secondary)" }}
+        >
+          Voluntary contributor — contributes freely without a fixed monthly commitment
+        </p>
+      ) : null}
 
       <div className="mt-8">
         <button
@@ -456,6 +521,24 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                   Anonymous on public dashboard
                 </span>
               </label>
+              <label className="flex items-start gap-2 text-sm lg:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={formVariableContributor}
+                  onChange={(e) => setFormVariableContributor(e.target.checked)}
+                  className="neu-checkbox mt-0.5"
+                />
+                <span style={{ color: "var(--neu-text-primary)" }}>
+                  Voluntary contributor
+                  <span
+                    className="mt-1 block text-xs font-normal"
+                    style={{ color: "var(--neu-text-secondary)" }}
+                  >
+                    Excludes this member from outstanding balance calculations and hides them from
+                    the public dashboard.
+                  </span>
+                </span>
+              </label>
               <div className="lg:col-span-2">
                 <label className="text-xs font-medium" style={{ color: "var(--neu-text-secondary)" }}>
                   Monthly rate (GHS)
@@ -467,10 +550,21 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                   value={formRate}
                   onChange={(e) => setFormRate(e.target.value)}
                   className="neu-input mt-1 w-full max-w-xs"
+                  style={
+                    formVariableContributor
+                      ? { opacity: 0.4, pointerEvents: "none" as const }
+                      : undefined
+                  }
                 />
-                <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
-                  Changing rate applies from {data.currentMonthLabel} onwards.
-                </p>
+                {formVariableContributor ? (
+                  <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                    Monthly rate not applicable
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                    Changing rate applies from {data.currentMonthLabel} onwards.
+                  </p>
+                )}
               </div>
             </div>
             <button
@@ -489,6 +583,11 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
         <h2 className="font-serif text-lg font-bold" style={{ color: "var(--neu-text-primary)" }}>
           Rate history
         </h2>
+        {data.member.variable_contributor ? (
+          <p className="mt-2 text-xs italic" style={{ color: "var(--neu-text-secondary)" }}>
+            Rate history does not affect balance calculations for voluntary contributors.
+          </p>
+        ) : null}
         {data.rates.length === 0 ? (
           <p
             className="neu-card-sm mt-3 py-6 text-center text-sm"
@@ -640,6 +739,11 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
         <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
           Green = paid · Red = unpaid · Gray = before start
         </p>
+        {data.member.variable_contributor ? (
+          <p className="mt-1 text-xs italic" style={{ color: "var(--neu-text-secondary)" }}>
+            Shows months where a payment was recorded
+          </p>
+        ) : null}
         <div className="mt-4 grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-8">
           {monthStatusGrid.map((cell) => {
             const style =

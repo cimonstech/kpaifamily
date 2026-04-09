@@ -20,6 +20,7 @@ function toMember(r: Record<string, unknown>): Member {
     active: Boolean(r.active),
     start_date: r.start_date == null ? "" : String(r.start_date),
     anonymous: Boolean(r.anonymous),
+    variable_contributor: Boolean(r.variable_contributor),
     credit_balance: Number(r.credit_balance ?? 0),
     created_at: String(r.created_at ?? ""),
   };
@@ -111,6 +112,10 @@ export default async function AdminMembersPage() {
       status = "pending";
       expectedTotal = 0;
       balance = 0;
+    } else if (m.variable_contributor) {
+      status = "voluntary";
+      expectedTotal = 0;
+      balance = 0;
     } else if (!m.start_date) {
       status = "pending";
       expectedTotal = 0;
@@ -118,7 +123,13 @@ export default async function AdminMembersPage() {
     } else {
       const startDate = new Date(m.start_date);
       expectedTotal = calculateExpectedTotal(rates, startDate);
-      balance = calculateBalance(rates, startDate, totalPaid, m.credit_balance);
+      balance = calculateBalance(
+        rates,
+        startDate,
+        totalPaid,
+        m.credit_balance,
+        false
+      );
       if (balance > 0.01) status = "behind";
       else if (balance < -0.01) status = "ahead";
       else status = "ok";
@@ -130,6 +141,7 @@ export default async function AdminMembersPage() {
       branch: m.branch,
       active: m.active,
       anonymous: m.anonymous,
+      variable_contributor: m.variable_contributor,
       currentRate,
       totalPaid,
       expectedTotal,

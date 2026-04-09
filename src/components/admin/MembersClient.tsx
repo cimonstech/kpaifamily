@@ -16,12 +16,13 @@ export type MemberRowVM = {
   branch: string;
   active: boolean;
   anonymous: boolean;
+  variable_contributor: boolean;
   currentRate: number;
   totalPaid: number;
   expectedTotal: number;
   balance: number;
   credit_balance: number;
-  status: "ahead" | "ok" | "behind" | "pending";
+  status: "ahead" | "ok" | "behind" | "pending" | "voluntary";
 };
 
 function initials(name: string) {
@@ -34,7 +35,7 @@ function formatCedis(n: number) {
   return formatGhsCurrency(n);
 }
 
-type Tab = "all" | "active" | "behind" | "paidUp" | "inactive";
+type Tab = "all" | "active" | "behind" | "paidUp" | "voluntary" | "inactive";
 
 export function MembersClient({ members }: { members: MemberRowVM[] }) {
   const router = useRouter();
@@ -55,7 +56,9 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
         case "behind":
           return m.active && m.status === "behind";
         case "paidUp":
-          return m.active && m.status === "ok";
+          return m.active && m.status === "ok" && !m.variable_contributor;
+        case "voluntary":
+          return m.active && m.variable_contributor;
         case "inactive":
           return !m.active;
         default:
@@ -66,7 +69,8 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
 
   const stats = useMemo(() => {
     const active = members.filter((m) => m.active);
-    const behind = active.filter((m) => m.status === "behind");
+    const standardActive = active.filter((m) => !m.variable_contributor);
+    const behind = standardActive.filter((m) => m.status === "behind");
     const outstanding = behind.reduce((s, m) => s + Math.max(0, m.balance), 0);
     return {
       activeCount: active.length,
@@ -80,6 +84,22 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
       return (
         <span className="neu-badge neu-badge-neutral" style={{ fontSize: 11 }}>
           Not Active
+        </span>
+      );
+    }
+    if (m.variable_contributor) {
+      return (
+        <span
+          className="text-[11px] font-semibold uppercase tracking-wide"
+          style={{
+            padding: "4px 10px",
+            borderRadius: 999,
+            background: "linear-gradient(135deg, #667eea, #764ba2)",
+            color: "white",
+            boxShadow: "var(--neu-flat)",
+          }}
+        >
+          Voluntary
         </span>
       );
     }
@@ -112,6 +132,13 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
   }
 
   function balanceCell(m: MemberRowVM) {
+    if (m.variable_contributor) {
+      return (
+        <span className="text-sm" style={{ color: "var(--neu-text-secondary)" }}>
+          —
+        </span>
+      );
+    }
     if (!m.active || m.status === "pending") {
       return (
         <span className="text-sm" style={{ color: "var(--neu-text-secondary)" }}>
@@ -141,6 +168,16 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
   }
 
   function rateBadge(m: MemberRowVM) {
+    if (m.variable_contributor) {
+      return (
+        <span
+          className="neu-badge neu-badge-neutral shrink-0"
+          style={{ fontSize: 11 }}
+        >
+          —
+        </span>
+      );
+    }
     return (
       <span
         className="neu-badge neu-badge-neutral shrink-0"
@@ -156,6 +193,7 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
     { id: "active", label: "Active" },
     { id: "behind", label: "Behind" },
     { id: "paidUp", label: "Paid Up" },
+    { id: "voluntary", label: "Voluntary" },
     { id: "inactive", label: "Not Active" },
   ];
 
@@ -226,7 +264,7 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
           const sub = getMemberPaymentSubtitle(
             m.totalPaid,
             m.balance,
-            m.status
+            m.variable_contributor ? "voluntary" : m.status
           );
           return (
           <li key={m.id}>
@@ -252,12 +290,14 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                     {m.branch}
                   </p>
                 ) : null}
+                {m.variable_contributor ? null : (
                 <div className="neu-progress-track mt-2 h-2 w-full">
                   <div
                     className="neu-progress-fill transition-all"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
+                )}
                 <p className="mt-1.5 text-xs" style={{ color: sub.colorVar }}>
                   {sub.text}
                 </p>
@@ -309,7 +349,7 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
               const sub = getMemberPaymentSubtitle(
                 m.totalPaid,
                 m.balance,
-                m.status
+                m.variable_contributor ? "voluntary" : m.status
               );
               return (
               <tr
@@ -331,12 +371,14 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                       </span>
                     </div>
                     <div className="min-w-0 pl-[52px]">
+                      {m.variable_contributor ? null : (
                       <div className="neu-progress-track h-2 w-full max-w-[220px]">
                         <div
                           className="neu-progress-fill transition-all"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
+                      )}
                       <p className="mt-1 text-xs" style={{ color: sub.colorVar }}>
                         {sub.text}
                       </p>
@@ -348,7 +390,7 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
                 </td>
                 <td className="px-4 py-3">{statusBadge(m)}</td>
                 <td className="px-4 py-3" style={{ color: "var(--neu-text-primary)" }}>
-                  {formatCedis(m.currentRate)}/mo
+                  {m.variable_contributor ? "—" : `${formatCedis(m.currentRate)}/mo`}
                 </td>
                 <td className="px-4 py-3">{balanceCell(m)}</td>
                 <td className="px-4 py-3">

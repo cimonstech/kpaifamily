@@ -38,6 +38,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
   });
   const [monthlyRate, setMonthlyRate] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [variableContributor, setVariableContributor] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,7 +87,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
       }
     }
     const rateNum = parseFloat(monthlyRate);
-    if (Number.isNaN(rateNum) || rateNum <= 0) {
+    if (!variableContributor && (Number.isNaN(rateNum) || rateNum <= 0)) {
       setError("Monthly rate must be greater than 0.");
       return;
     }
@@ -104,7 +105,8 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
           active,
           start_date,
           anonymous,
-          monthly_rate: rateNum,
+          variable_contributor: variableContributor,
+          monthly_rate: variableContributor ? rateNum || 0 : rateNum,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -118,6 +120,7 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
       setBranchSelect(BRANCH_OPTIONS[0]!);
       setActive(true);
       setAnonymous(false);
+      setVariableContributor(false);
       onSuccess();
       onClose();
     } catch {
@@ -264,7 +267,17 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
               value={monthlyRate}
               onChange={(e) => setMonthlyRate(e.target.value)}
               className="neu-input mt-1"
+              style={
+                variableContributor
+                  ? { opacity: 0.4, pointerEvents: "none" as const }
+                  : undefined
+              }
             />
+            {variableContributor ? (
+              <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                Monthly rate not applicable
+              </p>
+            ) : null}
           </div>
 
           <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -276,6 +289,25 @@ export function AddMemberModal({ open, onClose, onSuccess }: AddMemberModalProps
             />
             <span style={{ color: "var(--neu-text-primary)" }}>
               List as anonymous on public dashboard
+            </span>
+          </label>
+
+          <label className="flex cursor-pointer items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={variableContributor}
+              onChange={(e) => setVariableContributor(e.target.checked)}
+              className="neu-checkbox mt-0.5"
+            />
+            <span style={{ color: "var(--neu-text-primary)" }}>
+              Voluntary contributor
+              <span
+                className="mt-1 block text-xs font-normal"
+                style={{ color: "var(--neu-text-secondary)" }}
+              >
+                This person contributes freely without a fixed monthly commitment. They will be
+                hidden from the public dashboard.
+              </span>
             </span>
           </label>
 

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { signAdminToken } from "@/lib/auth/session";
 import { logEvent } from "@/lib/db/audit";
+import { cookieSecure } from "@/lib/cookies";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const MAX_PASSWORD_LEN = 128;
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
 
   res.cookies.set("reset_required", "", {
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure(),
     sameSite: "lax",
     maxAge: 0,
     path: "/",
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
 
   res.cookies.set("admin_token", token, {
     httpOnly: true,
-    secure: true,
+    secure: cookieSecure(),
     sameSite: "lax",
     maxAge: 60 * 60 * 8,
     path: "/",
