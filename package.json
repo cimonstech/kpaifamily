@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "count-paid-ahead": "npx tsx scripts/count-paid-ahead.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1019.0",

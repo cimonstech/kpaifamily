@@ -110,7 +110,11 @@ export default async function ChecklistMonthPage({
   const [{ data: rawMembers }, { data: checklistRows }, { data: payMonthRows }] =
     await Promise.all([
       supabase.from("members").select("*").eq("active", true),
-      supabase.from("monthly_checklist").select("*").eq("month", monthKey),
+      // monthly_checklist stores month keys as YYYY-MM (legacy rows may be YYYY-MM-01).
+      supabase
+        .from("monthly_checklist")
+        .select("*")
+        .in("month", [monthKey, `${monthKey}-01`]),
       supabase
         .from("payments")
         .select("*")
@@ -191,7 +195,7 @@ export default async function ChecklistMonthPage({
     if (!paidMapByMember.has(r.member_id)) {
       paidMapByMember.set(r.member_id, new Map());
     }
-    paidMapByMember.get(r.member_id)!.set(r.month, r.paid === true);
+    paidMapByMember.get(r.member_id)!.set(String(r.month).slice(0, 7), r.paid === true);
   }
 
   const today = new Date();

@@ -12,6 +12,11 @@ import {
   calculateExpectedTotal,
   getMemberRateForMonth,
 } from "@/lib/utils/rate-calculator";
+import {
+  amountForReportMonth,
+  isPaidForReportMonth,
+  paidMemberIdsFromChecklistRows,
+} from "@/lib/utils/report-month-contribution";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MemberRate, Payment, ReportData } from "@/lib/types";
 
@@ -118,12 +123,7 @@ export async function POST(request: Request) {
 
   const supabase = await createSupabaseServerClient();
 
-  const [
-    { data: rawMembers },
-    { data: allMemberRatesRaw },
-    { data: rawPayments },
-    { data: checklistForMonth },
-  ] =
+  const [{ data: rawMembers }, { data: allMemberRatesRaw }, { data: rawPayments }] =
     await Promise.all([
       supabase.from("members").select("*").eq("active", true),
       supabase
@@ -131,21 +131,28 @@ export async function POST(request: Request) {
         .select("*")
         .order("effective_from", { ascending: true }),
       supabase.from("payments").select("*"),
-      supabase
-        .from("monthly_checklist")
-        .select("member_id, paid")
-        .eq("month", monthFirst)
-        .eq("paid", true),
     ]);
 
   const members = (rawMembers ?? []) as Record<string, unknown>[];
   const memberIds = members.map((m) => String(m.id));
   const memberIdSet = new Set(memberIds);
 
-  const paidMemberIds = new Set(
-    (checklistForMonth ?? []).map((c) =>
-      String((c as { member_id: string }).member_id)
-    )
+  const { data: checklistPaidRows } =
+    memberIds.length > 0
+      ? await supabase
+          .from("monthly_checklist")
+          .select("member_id, month, paid")
+          .in("member_id", memberIds)
+          .eq("paid", true)
+      : { data: [] };
+
+  const paidMemberIds = paidMemberIdsFromChecklistRows(
+    (checklistPaidRows ?? []) as Array<{
+      member_id: string;
+      month: string;
+      paid?: boolean | null;
+    }>,
+    ym
   );
 
   const { data: singleMonthPayments } = await supabase
@@ -209,42 +216,64 @@ export async function POST(request: Request) {
   const monthStartStr = firstDayOfMonth.toISOString().slice(0, 10);
   const monthEndStr = lastDayOfMonth.toISOString().slice(0, 10);
 
-  function paymentsInReportMonth(memberId: string): number {
-    return allPayments
-      .filter(
-        (p) =>
-          p.member_id === memberId &&
-          p.date_paid >= monthStartStr &&
-          p.date_paid <= monthEndStr
-      )
-      .reduce((s, p) => s + p.amount, 0);
+  const paymentsInMonthMap = new Map<string, number>();
+  for (const p of allPayments) {
+    if (p.date_paid < monthStartStr || p.date_paid > monthEndStr) continue;
+    paymentsInMonthMap.set(
+      p.member_id,
+      (paymentsInMonthMap.get(p.member_id) ?? 0) + p.amount
+    );
   }
 
-  const paidMembersWhatsapp = activeMembers
-    .filter((m) => paidMemberIds.has(m.id))
-    .map((m) => {
-      const rateForMonth = getMemberRateForMonth(
-        memberRatesMap.get(m.id) ?? [],
-        firstDayOfMonth
-      );
-      const amountToShow = m.variable_contributor
-        ? paymentsInReportMonth(m.id)
-        : singleMonthPaymentMap.has(m.id)
-          ? (singleMonthPaymentMap.get(m.id) ?? 0)
-          : rateForMonth;
-      return {
-        name: m.name,
-        anonymous: m.anonymous,
-        amountPaidThisMonth: amountToShow,
-      };
-    })
-    .sort((a, b) =>
-      (a.anonymous ? "Anonymous" : a.name).localeCompare(
-        b.anonymous ? "Anonymous" : b.name,
-        undefined,
-        { sensitivity: "base" }
-      )
-    );
+  function paymentsInReportMonth(memberId: string): number {
+    return paymentsInMonthMap.get(memberId) ?? 0;
+  }
+
+  const paidMemberIdsUnified = new Set<string>();
+  const paidMembersWhatsapp: Array<{
+    name: string;
+    anonymous: boolean;
+    amountPaidThisMonth: number;
+  }> = [];
+
+  for (const m of activeMembers) {
+    const rates = memberRatesMap.get(m.id) ?? [];
+    const totalPaid = totalPaidMap.get(m.id) ?? 0;
+    if (
+      !isPaidForReportMonth({
+        member: m,
+        memberRates: rates,
+        reportMonth: firstDayOfMonth,
+        checklistPaid: paidMemberIds.has(m.id),
+        paymentInReportMonth: paymentsInReportMonth(m.id),
+        totalPaidAllTime: totalPaid,
+      })
+    ) {
+      continue;
+    }
+    const amountToShow = amountForReportMonth({
+      member: m,
+      memberRates: rates,
+      reportMonth: firstDayOfMonth,
+      singleMonthPaymentAmount: singleMonthPaymentMap.get(m.id),
+      paymentInReportMonth: paymentsInReportMonth(m.id),
+    });
+    if (amountToShow <= 0.01) continue;
+    paidMemberIdsUnified.add(m.id);
+    paidMembersWhatsapp.push({
+      name: m.name,
+      anonymous: m.anonymous,
+      amountPaidThisMonth: amountToShow,
+    });
+  }
+
+  paidMembersWhatsapp.sort((a, b) =>
+    (a.anonymous ? "Anonymous" : a.name).localeCompare(
+      b.anonymous ? "Anonymous" : b.name,
+      undefined,
+      { sensitivity: "base" }
+    )
+  );
 
   const totalCollectedThisMonth = paidMembersWhatsapp.reduce(
     (sum, m) => sum + m.amountPaidThisMonth,
@@ -259,7 +288,7 @@ export async function POST(request: Request) {
   const unpaidMembersWhatsapp = activeMembers
     .filter((m) => {
       if (m.variable_contributor) return false;
-      if (paidMemberIds.has(m.id)) return false;
+      if (paidMemberIdsUnified.has(m.id)) return false;
       if (!m.start_date) return false;
       const startDate = new Date(m.start_date);
       return startDate <= firstDayOfMonth;
@@ -320,13 +349,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const paidThisMonth = paidMemberIds.has(id);
+    const paidThisMonth = paidMemberIdsUnified.has(id);
     const amountPaidThisMonth = paidThisMonth
-      ? variable_contributor
-        ? paymentsInReportMonth(id)
-        : singleMonthPaymentMap.has(id)
-          ? (singleMonthPaymentMap.get(id) ?? 0)
-          : getMemberRateForMonth(rates, firstDayOfMonth)
+      ? amountForReportMonth({
+          member: {
+            id,
+            start_date,
+            variable_contributor,
+            credit_balance,
+          },
+          memberRates: rates,
+          reportMonth: firstDayOfMonth,
+          singleMonthPaymentAmount: singleMonthPaymentMap.get(id),
+          paymentInReportMonth: paymentsInReportMonth(id),
+        })
       : 0;
 
     let status = "Paid up";

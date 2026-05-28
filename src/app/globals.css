@@ -310,10 +310,12 @@
 }
 
 .neu-metric .value {
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--neu-text-primary);
   font-family: var(--font-serif), ui-serif, Georgia, serif;
+  line-height: 1.2;
+  word-break: break-word;
 }
 
 .neu-metric .sub {
@@ -322,12 +324,12 @@
 }
 
 .metric-value {
-  font-size: 24px;
+  font-size: 14px;
 }
 
 @media (max-width: 640px) {
   .neu-metric .value {
-    font-size: 17px;
+    font-size: 10px;
   }
   .neu-metric .label {
     font-size: 9px;
@@ -336,7 +338,7 @@
     font-size: 9px;
   }
   .metric-value {
-    font-size: 17px;
+    font-size: 10px;
   }
 }
 

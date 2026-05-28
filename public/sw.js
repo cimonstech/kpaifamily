@@ -31,6 +31,10 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const reqUrl = new URL(event.request.url);
+  // Only handle same-origin http(s) requests. Extensions sometimes trigger
+  // requests like chrome-extension://... which cannot be cached and will throw.
+  if (reqUrl.origin !== self.location.origin) return;
+  if (reqUrl.protocol !== "http:" && reqUrl.protocol !== "https:") return;
   if (
     reqUrl.pathname === "/favicon.ico" ||
     reqUrl.pathname.startsWith("/favicon/") ||
@@ -51,7 +55,9 @@ self.addEventListener("fetch", (event) => {
         if (response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
+            cache.put(event.request, clone).catch(() => {
+              // Ignore cache write failures (e.g. opaque responses, quota, etc.)
+            });
           });
         }
         return response;

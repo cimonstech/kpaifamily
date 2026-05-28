@@ -80,6 +80,20 @@ export function getMemberStatus(
   return "behind";
 }
 
+/** Zero balance or overpaid (Paid Up + Ahead badges on Members). */
+export function isMemberPaidUp(balance: number): boolean {
+  return balance <= 0.01;
+}
+
+/** Overpaid only (blue Ahead badge). */
+export function isMemberPaidAhead(balance: number): boolean {
+  return balance < -0.01;
+}
+
+export function isMemberBehind(balance: number): boolean {
+  return balance > 0.01;
+}
+
 /** Calendar months from `startDate` through today, inclusive (same bounds as expected total). */
 export function getMonthsElapsed(startDate: Date): number {
   const start = startOfMonth(startDate);

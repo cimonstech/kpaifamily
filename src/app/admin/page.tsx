@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   title: "Home | Admin",
 };
 import { getMemberPaymentSubtitle } from "@/lib/utils/member-payment-subtitle";
-import { calculateBalance, getMemberRateForMonth } from "@/lib/utils/rate-calculator";
+import {
+  calculateBalance,
+  isMemberPaidAhead,
+  isMemberPaidUp,
+} from "@/lib/utils/rate-calculator";
 import type { Member, MemberRate, Payment } from "@/lib/types";
 
 function formatCedis(n: number) {
@@ -98,8 +102,6 @@ export default async function AdminHomePage() {
     { data: rawMembers },
     { data: rawRates },
     { data: rawPayments },
-    { data: checklistRows },
-    { data: singleMonthPayments },
     { data: recentRaw },
     { data: recentExpenses },
     { data: allExpenses },
@@ -107,13 +109,6 @@ export default async function AdminHomePage() {
     supabase.from("members").select("*"),
     supabase.from("member_rates").select("*"),
     supabase.from("payments").select("*"),
-    supabase.from("monthly_checklist").select("member_id, paid").eq("month", monthFirst),
-    supabase
-      .from("payments")
-      .select("member_id, amount")
-      .eq("single_month_only", true)
-      .gte("date_paid", monthStartIso)
-      .lte("date_paid", monthEndIso),
     supabase
       .from("payments")
       .select("id, amount, date_paid, note, member_id, members(name)")
@@ -153,21 +148,7 @@ export default async function AdminHomePage() {
 
   const activeMembers = members.filter((m) => m.active);
   const standardActiveMembers = activeMembers.filter((m) => !m.variable_contributor);
-  const paidMemberIds = new Set(
-    (checklistRows ?? [])
-      .filter((row) => (row as { paid?: boolean }).paid === true)
-      .map((row) => String((row as { member_id: string }).member_id))
-  );
 
-  const paidUpThisMonthCount = standardActiveMembers.filter((m) =>
-    paidMemberIds.has(m.id)
-  ).length;
-  const singleMonthPaymentMap = new Map<string, number>();
-  for (const row of singleMonthPayments ?? []) {
-    const p = row as { member_id: string; amount: number };
-    const existing = singleMonthPaymentMap.get(p.member_id) ?? 0;
-    singleMonthPaymentMap.set(p.member_id, existing + Number(p.amount));
-  }
   function paymentsInMonthForMember(memberId: string): number {
     return payments
       .filter(
@@ -179,23 +160,48 @@ export default async function AdminHomePage() {
       .reduce((s, p) => s + p.amount, 0);
   }
 
-  const totalPaidThisMonth = activeMembers
-    .filter((m) => paidMemberIds.has(m.id))
-    .reduce((sum, m) => {
-      if (m.variable_contributor) {
-        return sum + paymentsInMonthForMember(m.id);
-      }
-      const rates = ratesByMember.get(m.id) ?? [];
-      const rateForMonth = getMemberRateForMonth(rates, monthStart);
-      const amount = singleMonthPaymentMap.has(m.id)
-        ? (singleMonthPaymentMap.get(m.id) ?? 0)
-        : rateForMonth;
-      return sum + amount;
-    }, 0);
-  const notYetPaidThisMonth = Math.max(
-    0,
-    standardActiveMembers.length - paidUpThisMonthCount
-  );
+  function memberBalance(m: Member): number {
+    if (!m.start_date) return 0;
+    const rates = ratesByMember.get(m.id) ?? [];
+    const totalPaid = payments
+      .filter((p) => p.member_id === m.id)
+      .reduce((s, p) => s + p.amount, 0);
+    return calculateBalance(
+      rates,
+      new Date(m.start_date),
+      totalPaid,
+      m.credit_balance,
+      false
+    );
+  }
+
+  let paidCashThisMonthCount = 0;
+  let totalCashCollectedThisMonth = 0;
+
+  for (const m of activeMembers) {
+    const paymentInMonth = paymentsInMonthForMember(m.id);
+    if (paymentInMonth <= 0.01) continue;
+    totalCashCollectedThisMonth += paymentInMonth;
+    if (!m.variable_contributor) paidCashThisMonthCount++;
+  }
+
+  let paidUpCount = 0;
+  let paidAheadCount = 0;
+  let notYetPaidCount = 0;
+
+  for (const m of standardActiveMembers) {
+    if (!m.start_date) {
+      notYetPaidCount++;
+      continue;
+    }
+    const balance = memberBalance(m);
+    if (isMemberPaidUp(balance)) {
+      paidUpCount++;
+      if (isMemberPaidAhead(balance)) paidAheadCount++;
+    } else {
+      notYetPaidCount++;
+    }
+  }
 
   const behindRows: { id: string; name: string; owed: number; totalPaid: number }[] =
     [];
@@ -315,8 +321,13 @@ export default async function AdminHomePage() {
             ✓
           </div>
           <span className="label">Paid this month</span>
-          <span className="value metric-value">{formatCedis(totalPaidThisMonth)}</span>
-          <span className="sub">{paidUpThisMonthCount} members</span>
+          <span className="value metric-value">
+            {formatCedis(totalCashCollectedThisMonth)}
+          </span>
+          <span className="sub">
+            {paidCashThisMonthCount} member
+            {paidCashThisMonthCount === 1 ? "" : "s"} (cash received)
+          </span>
         </div>
         <div className="neu-metric relative overflow-hidden">
           <div
@@ -327,10 +338,15 @@ export default async function AdminHomePage() {
           </div>
           <span className="label">Member status</span>
           <span className="value metric-value" style={{ color: "var(--neu-success)" }}>
-            {paidUpThisMonthCount} paid up
+            {paidUpCount} paid up
           </span>
+          {paidAheadCount > 0 ? (
+            <span className="sub" style={{ color: "var(--neu-info)" }}>
+              {paidAheadCount} paid ahead
+            </span>
+          ) : null}
           <span className="sub" style={{ color: "var(--neu-danger)" }}>
-            {notYetPaidThisMonth} not yet paid
+            {notYetPaidCount} not yet paid
           </span>
         </div>
         <div className="neu-metric relative overflow-hidden">

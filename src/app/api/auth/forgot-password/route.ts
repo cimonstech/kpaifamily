@@ -82,7 +82,9 @@ export async function POST(request: Request) {
     user_agent: userAgent ?? undefined,
   });
 
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+    new URL(request.url).origin;
   if (process.env.NODE_ENV === "development") {
     console.log(`[DEV ONLY] Reset link: ${base}/admin/reset-password?token=${rawToken}`);
   }

@@ -151,7 +151,7 @@ export async function POST(request: Request) {
   }
 
   if (singleMonthOnly) {
-    const checklistMonth = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, "0")}-01`;
+    const checklistMonth = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, "0")}`;
     await supabase.from("monthly_checklist").upsert(
       {
         member_id: memberId,
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
     );
     while (cursor <= endMonth) {
       allMonths.push(
-        `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-01`
+        `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`
       );
       cursor.setMonth(cursor.getMonth() + 1);
     }
@@ -189,8 +189,8 @@ export async function POST(request: Request) {
     const paidSet = new Set(
       (paidMonths ?? []).map((p) => {
         const row = p as { month: string };
-        const d = new Date(row.month);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+        // Accept either YYYY-MM or YYYY-MM-01 in DB.
+        return String(row.month).slice(0, 7);
       })
     );
 

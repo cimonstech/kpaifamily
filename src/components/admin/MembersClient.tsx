@@ -35,7 +35,7 @@ function formatCedis(n: number) {
   return formatGhsCurrency(n);
 }
 
-type Tab = "all" | "active" | "behind" | "paidUp" | "voluntary" | "inactive";
+type Tab = "all" | "active" | "behind" | "paidUp" | "ahead" | "voluntary" | "inactive";
 
 export function MembersClient({ members }: { members: MemberRowVM[] }) {
   const router = useRouter();
@@ -56,7 +56,13 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
         case "behind":
           return m.active && m.status === "behind";
         case "paidUp":
-          return m.active && m.status === "ok" && !m.variable_contributor;
+          return (
+            m.active &&
+            !m.variable_contributor &&
+            (m.status === "ok" || m.status === "ahead")
+          );
+        case "ahead":
+          return m.active && !m.variable_contributor && m.status === "ahead";
         case "voluntary":
           return m.active && m.variable_contributor;
         case "inactive":
@@ -193,6 +199,7 @@ export function MembersClient({ members }: { members: MemberRowVM[] }) {
     { id: "active", label: "Active" },
     { id: "behind", label: "Behind" },
     { id: "paidUp", label: "Paid Up" },
+    { id: "ahead", label: "Paid Ahead" },
     { id: "voluntary", label: "Voluntary" },
     { id: "inactive", label: "Not Active" },
   ];
