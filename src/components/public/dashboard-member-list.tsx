@@ -15,6 +15,7 @@ export type DashboardMemberRow = {
   branch: string;
   active: boolean;
   anonymous: boolean;
+  variable_contributor: boolean;
   displayName: string;
   totalPaid: number;
   expectedTotal: number;
@@ -24,7 +25,13 @@ export type DashboardMemberRow = {
   payments: Payment[];
 };
 
-type FilterTab = "all" | "behind" | "paidUp" | "ahead" | "inactive";
+type FilterTab =
+  | "all"
+  | "behind"
+  | "paidUp"
+  | "ahead"
+  | "anonymous"
+  | "inactive";
 
 function getInitials(displayName: string) {
   if (displayName === "Anonymous") return "A";
@@ -211,7 +218,10 @@ export function DashboardMemberList({
     totalCollected: number;
     totalOutstanding: number;
     membersPaidUp: number;
+    membersPaidAhead: number;
     membersBehind: number;
+    anonymousCount: number;
+    anonymousTotalPaid: number;
     totalExpenses: number;
     expenseCount: number;
   };
@@ -232,9 +242,15 @@ export function DashboardMemberList({
         case "behind":
           return m.active && m.status === "behind";
         case "paidUp":
-          return m.active && m.status === "ok";
+          return (
+            m.active &&
+            !m.variable_contributor &&
+            (m.status === "ok" || m.status === "ahead")
+          );
         case "ahead":
-          return m.active && m.status === "ahead";
+          return m.active && !m.variable_contributor && m.status === "ahead";
+        case "anonymous":
+          return m.active && m.anonymous;
         case "inactive":
           return !m.active;
         default:
@@ -247,7 +263,8 @@ export function DashboardMemberList({
     { id: "all", label: "All" },
     { id: "behind", label: "Behind" },
     { id: "paidUp", label: "Paid Up" },
-    { id: "ahead", label: "Ahead" },
+    { id: "ahead", label: "Paid Ahead" },
+    { id: "anonymous", label: "Anonymous" },
     { id: "inactive", label: "Not Active" },
   ];
 
@@ -301,28 +318,53 @@ export function DashboardMemberList({
       </header>
 
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
           <div className="neu-metric">
             <span className="label">Total collected</span>
-            <span className="value">{formatCedis(summary.totalCollected)}</span>
+            <span className="value metric-value">{formatCedis(summary.totalCollected)}</span>
             <span className="sub">All time</span>
           </div>
           <div className="neu-metric">
             <span className="label">Total outstanding</span>
-            <span className="value">{formatCedis(summary.totalOutstanding)}</span>
+            <span className="value metric-value">
+              {formatCedis(summary.totalOutstanding)}
+            </span>
           </div>
           <div className="neu-metric">
             <span className="label">Member status</span>
-            <span className="value" style={{ color: "var(--neu-success)" }}>
+            <span className="value metric-value" style={{ color: "var(--neu-success)" }}>
               {summary.membersPaidUp} paid up
             </span>
+            {summary.membersPaidAhead > 0 ? (
+              <span className="sub" style={{ color: "var(--neu-info)" }}>
+                {summary.membersPaidAhead} paid ahead
+              </span>
+            ) : null}
             <span className="sub" style={{ color: "var(--neu-danger)" }}>
-              {summary.membersBehind} behind
+              {summary.membersBehind} not yet paid
             </span>
           </div>
-          <div className="neu-metric">
+          <div
+            className="neu-metric"
+            style={{
+              background: "linear-gradient(135deg, #4a5568, #2d3748)",
+              color: "white",
+            }}
+          >
+            <span className="label" style={{ color: "rgba(255,255,255,0.9)" }}>
+              Anonymous
+            </span>
+            <span className="value metric-value" style={{ color: "white" }}>
+              {formatCedis(summary.anonymousTotalPaid)}
+            </span>
+            <span className="sub" style={{ color: "rgba(255,255,255,0.85)" }}>
+              {summary.anonymousCount} member
+              {summary.anonymousCount === 1 ? "" : "s"} · all time paid
+            </span>
+          </div>
+          <div className="neu-metric col-span-2 lg:col-span-1">
             <span className="label">Total expenses</span>
-            <span className="value" style={{ color: "var(--neu-gold)" }}>
+            <span className="value metric-value" style={{ color: "var(--neu-gold)" }}>
               {formatCedis(summary.totalExpenses)}
             </span>
             <span className="sub">{summary.expenseCount} records</span>

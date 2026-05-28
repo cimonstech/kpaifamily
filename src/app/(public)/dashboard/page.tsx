@@ -11,7 +11,12 @@ export const metadata: Metadata = {
 };
 import { pickCurrentGlobalRateFromRows } from "@/lib/db/rates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { calculateBalance, calculateExpectedTotal } from "@/lib/utils/rate-calculator";
+import {
+  calculateBalance,
+  calculateExpectedTotal,
+  isMemberPaidAhead,
+  isMemberPaidUp,
+} from "@/lib/utils/rate-calculator";
 import type { Member, MemberRate, Payment } from "@/lib/types";
 
 function toMemberRate(r: Record<string, unknown>): MemberRate {
@@ -87,7 +92,10 @@ export default async function DashboardPage() {
   const members = (rawMembers ?? []).map((r) =>
     toMember(r as Record<string, unknown>)
   );
-  const publicMembers = members.filter((m) => !m.variable_contributor);
+  // Standard members plus anonymous members (reports include anonymous even when voluntary).
+  const publicMembers = members.filter(
+    (m) => !m.variable_contributor || m.anonymous
+  );
   const ratesByMember = new Map<string, MemberRate[]>();
   for (const row of rawRates ?? []) {
     const mr = toMemberRate(row as Record<string, unknown>);
@@ -115,28 +123,42 @@ export default async function DashboardPage() {
     const rates = ratesByMember.get(m.id) ?? [];
     const payments = paymentsByMember.get(m.id) ?? [];
     const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
-    const startDate = new Date(m.start_date);
-    const expectedTotal = calculateExpectedTotal(rates, startDate);
-    const balance = calculateBalance(
-      rates,
-      startDate,
-      totalPaid,
-      m.credit_balance,
-      false
-    );
     const displayName = m.anonymous ? "Anonymous" : m.name;
-    let status: DashboardMemberRow["status"];
-    if (!m.active) status = "pending";
-    else if (balance > 0.01) status = "behind";
-    else if (balance < -0.01) status = "ahead";
-    else status = "ok";
     const monthsPaidSum = payments.reduce((s, p) => s + p.months_covered, 0);
+
+    let expectedTotal = 0;
+    let balance = 0;
+    let status: DashboardMemberRow["status"];
+
+    if (!m.active) {
+      status = "pending";
+    } else if (m.variable_contributor) {
+      status = "ok";
+      expectedTotal = 0;
+      balance = 0;
+    } else if (!m.start_date) {
+      status = "pending";
+    } else {
+      const startDate = new Date(m.start_date);
+      expectedTotal = calculateExpectedTotal(rates, startDate);
+      balance = calculateBalance(
+        rates,
+        startDate,
+        totalPaid,
+        m.credit_balance,
+        false
+      );
+      if (balance > 0.01) status = "behind";
+      else if (balance < -0.01) status = "ahead";
+      else status = "ok";
+    }
 
     return {
       id: m.id,
       branch: m.branch,
       active: m.active,
       anonymous: m.anonymous,
+      variable_contributor: m.variable_contributor,
       displayName,
       totalPaid,
       expectedTotal,
@@ -157,8 +179,21 @@ export default async function DashboardPage() {
     (s, r) => s + Math.max(0, r.balance),
     0
   );
-  const membersPaidUp = activeRows.filter((r) => r.status === "ok").length;
-  const membersBehind = activeRows.filter((r) => r.status === "behind").length;
+  let membersPaidUp = 0;
+  let membersPaidAhead = 0;
+  let membersBehind = 0;
+  for (const r of activeRows) {
+    if (r.status === "pending" || r.variable_contributor) continue;
+    if (isMemberPaidUp(r.balance)) {
+      membersPaidUp++;
+      if (isMemberPaidAhead(r.balance)) membersPaidAhead++;
+    } else if (r.status === "behind") {
+      membersBehind++;
+    }
+  }
+  const anonymousRows = activeRows.filter((r) => r.anonymous);
+  const anonymousCount = anonymousRows.length;
+  const anonymousTotalPaid = anonymousRows.reduce((s, r) => s + r.totalPaid, 0);
   const totalExpenses = (expensesData ?? []).reduce(
     (s, e) => s + Number((e as { total_amount?: number }).total_amount ?? 0),
     0
@@ -184,7 +219,10 @@ export default async function DashboardPage() {
           totalCollected,
           totalOutstanding,
           membersPaidUp,
+          membersPaidAhead,
           membersBehind,
+          anonymousCount,
+          anonymousTotalPaid,
           totalExpenses,
           expenseCount,
         }}
