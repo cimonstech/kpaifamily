@@ -101,7 +101,7 @@ export default async function MemberDetailPage({
         .order("date_paid", { ascending: false }),
       supabase
         .from("monthly_checklist")
-        .select("month, paid")
+        .select("month, paid, payment_id")
         .eq("member_id", id)
         .order("month", { ascending: true }),
     ]);
@@ -123,15 +123,19 @@ export default async function MemberDetailPage({
     toPayment(row as Record<string, unknown>)
   );
 
-  const checklist: { month: string; paid: boolean }[] = (rawChecklist ?? []).map(
-    (row) => {
-      const r = row as { month: string; paid: boolean | null };
+  const checklist: { month: string; paid: boolean; payment_id: string | null }[] =
+    (rawChecklist ?? []).map((row) => {
+      const r = row as {
+        month: string;
+        paid: boolean | null;
+        payment_id: string | null;
+      };
       return {
         month: String(r.month),
         paid: r.paid === true,
+        payment_id: r.payment_id == null ? null : String(r.payment_id),
       };
-    }
-  );
+    });
 
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
   const monthsPaidSum = payments.reduce((s, p) => s + p.months_covered, 0);

@@ -30,13 +30,22 @@ export type MemberDetailVM = {
   monthsContributing: number;
   monthsPaidSum: number;
   monthsExpected: number;
-  checklist: { month: string; paid: boolean }[];
+  checklist: { month: string; paid: boolean; payment_id: string | null }[];
   currentMonthLabel: string;
   currentRate: number;
 };
 
 function formatCedis(n: number) {
   return formatGhsCurrency(n);
+}
+
+function shortMonthLabel(ym: string) {
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || !m) return ym;
+  return new Date(y, m - 1, 1).toLocaleDateString("en-GH", {
+    month: "short",
+    year: "2-digit",
+  });
 }
 
 function initials(name: string) {
@@ -121,6 +130,27 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
     data.member.start_date,
     data.member.variable_contributor,
   ]);
+
+  // Which months each payment covered, from checklist rows tagged with the
+  // covering payment. Used to show e.g. "Apr 26 – Dec 26" in payment history.
+  const paymentCoverageLabel = useMemo(() => {
+    const monthsByPayment = new Map<string, string[]>();
+    for (const c of data.checklist) {
+      if (!c.paid || !c.payment_id) continue;
+      const key = String(c.month).slice(0, 7);
+      const list = monthsByPayment.get(c.payment_id) ?? [];
+      list.push(key);
+      monthsByPayment.set(c.payment_id, list);
+    }
+    const labels = new Map<string, string>();
+    for (const [paymentId, months] of monthsByPayment) {
+      months.sort();
+      const first = shortMonthLabel(months[0]!);
+      const last = shortMonthLabel(months[months.length - 1]!);
+      labels.set(paymentId, months.length === 1 ? first : `${first} – ${last}`);
+    }
+    return labels;
+  }, [data.checklist]);
 
   const monthStatusGrid = useMemo(() => {
     type CellStatus = "paid" | "ahead" | "unpaid" | "before-start";
@@ -666,7 +696,10 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                         {formatCedis(p.amount)}
                       </p>
                       <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
-                        {p.note ?? "—"}
+                        {paymentCoverageLabel.has(p.id)
+                          ? `Covers ${paymentCoverageLabel.get(p.id)}`
+                          : `${p.months_covered} month${p.months_covered === 1 ? "" : "s"}`}
+                        {p.note ? ` · ${p.note}` : ""}
                       </p>
                     </div>
                     <button
@@ -707,6 +740,11 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                     </td>
                     <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
                       {p.months_covered}
+                      {paymentCoverageLabel.has(p.id) ? (
+                        <span className="block text-xs" style={{ color: "var(--neu-text-secondary)" }}>
+                          {paymentCoverageLabel.get(p.id)}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3" style={{ color: "var(--neu-text-secondary)" }}>
                       {p.note ?? "—"}
