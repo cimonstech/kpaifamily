@@ -151,34 +151,27 @@ export async function POST(request: Request) {
   }
 
   if (singleMonthOnly) {
-    const checklistMonth = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, "0")}`;
-    await supabase.from("monthly_checklist").upsert(
-      {
-        member_id: memberId,
-        month: checklistMonth,
-        paid: true,
-        payment_id: paymentId,
-      },
-      { onConflict: "member_id,month" }
-    );
+    // month is a date column — values must be YYYY-MM-01.
+    const checklistMonth = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, "0")}-01`;
+    const { error: checklistErr } = await supabase
+      .from("monthly_checklist")
+      .upsert(
+        {
+          member_id: memberId,
+          month: checklistMonth,
+          paid: true,
+          payment_id: paymentId,
+        },
+        { onConflict: "member_id,month" }
+      );
+    if (checklistErr) {
+      console.error("checklist upsert", checklistMonth, checklistErr);
+    }
   } else {
     const memberStartDate = (rawMember as { start_date: string | null })
       .start_date;
     if (memberStartDate) {
     const startDate = new Date(memberStartDate);
-    const endMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const allMonths: string[] = [];
-    const cursor = new Date(
-      startDate.getFullYear(),
-      startDate.getMonth(),
-      1
-    );
-    while (cursor <= endMonth) {
-      allMonths.push(
-        `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`
-      );
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
 
     const { data: paidMonths } = await supabase
       .from("monthly_checklist")
@@ -194,22 +187,44 @@ export async function POST(request: Request) {
       })
     );
 
-    const unpaidMonths = allMonths.filter((m) => !paidSet.has(m));
-    const monthsToMark = unpaidMonths.slice(
-      0,
-      Math.max(1, alloc.monthsCovered)
+    // Fill oldest unpaid months first, continuing past the current month so
+    // paid-ahead coverage is reflected in the checklist.
+    const monthsNeeded = Math.max(1, alloc.monthsCovered);
+    const monthsToMark: string[] = [];
+    const cursor = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      1
     );
+    const maxMonthsScanned = 1200;
+    for (
+      let i = 0;
+      i < maxMonthsScanned && monthsToMark.length < monthsNeeded;
+      i++
+    ) {
+      const monthStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
+      if (!paidSet.has(monthStr)) {
+        monthsToMark.push(monthStr);
+      }
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
 
     for (const monthStr of monthsToMark) {
-      await supabase.from("monthly_checklist").upsert(
-        {
-          member_id: memberId,
-          month: monthStr,
-          paid: true,
-          payment_id: paymentId,
-        },
-        { onConflict: "member_id,month" }
-      );
+      // month is a date column — values must be YYYY-MM-01.
+      const { error: checklistErr } = await supabase
+        .from("monthly_checklist")
+        .upsert(
+          {
+            member_id: memberId,
+            month: `${monthStr}-01`,
+            paid: true,
+            payment_id: paymentId,
+          },
+          { onConflict: "member_id,month" }
+        );
+      if (checklistErr) {
+        console.error("checklist upsert", monthStr, checklistErr);
+      }
     }
     }
   }
