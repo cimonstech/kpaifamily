@@ -123,7 +123,7 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
   ]);
 
   const monthStatusGrid = useMemo(() => {
-    type CellStatus = "paid" | "unpaid" | "before-start";
+    type CellStatus = "paid" | "ahead" | "unpaid" | "before-start";
     const months: Array<{
       label: string;
       monthStr: string;
@@ -172,6 +172,19 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
       }
 
       months.push({ label, monthStr: key, status });
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    // Paid-ahead: keep going past the current month while future months are
+    // already marked paid in the checklist.
+    while (true) {
+      const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}-01`;
+      if (checklistMap.get(key) !== true) break;
+      const label = current.toLocaleDateString("en-GH", {
+        month: "short",
+        year: "2-digit",
+      });
+      months.push({ label, monthStr: key, status: "ahead" });
       current.setMonth(current.getMonth() + 1);
     }
 
@@ -737,7 +750,7 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
           Monthly status
         </h2>
         <p className="mt-1 text-xs" style={{ color: "var(--neu-text-secondary)" }}>
-          Green = paid · Red = unpaid · Gray = before start
+          Green = paid · Light green = paid ahead · Red = unpaid · Gray = before start
         </p>
         {data.member.variable_contributor ? (
           <p className="mt-1 text-xs italic" style={{ color: "var(--neu-text-secondary)" }}>
@@ -753,7 +766,13 @@ export function MemberDetailClient({ data }: { data: MemberDetailVM }) {
                     color: "white",
                     boxShadow: "var(--neu-raised)",
                   }
-                : cell.status === "unpaid"
+                : cell.status === "ahead"
+                  ? {
+                      background: "linear-gradient(135deg, #d9f7e3, #9ae6b4)",
+                      color: "#276749",
+                      boxShadow: "var(--neu-raised)",
+                    }
+                  : cell.status === "unpaid"
                   ? {
                       background: "linear-gradient(135deg, #fc8181, #e53e3e)",
                       color: "white",
